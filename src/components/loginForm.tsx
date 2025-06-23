@@ -63,12 +63,14 @@ export default function LoginForm() {
         setIsLoading(true)
         try {
             const result = await signIn("credentials", {
-                email: formData.email.toLowerCase().trim(),
+                email: formData.email.toLowerCase().trim(), // Normalize email
                 password: formData.password,
                 redirect: false,
+                callbackUrl: "https://multikart-pink.vercel.app",
             })
 
             if (result?.error) {
+                // Handle specific error messages
                 if (result.error === "Missing required fields") {
                     toast.error("Please fill in all required fields")
                 } else if (result.error === "Invalid email format") {
@@ -78,9 +80,8 @@ export default function LoginForm() {
                 }
             } else if (result?.ok) {
                 toast.success("Login successful!")
-                // Use router.push for client-side navigation
-                router.refresh() // Refresh the session
-                router.push("/") // Navigate to home page
+                router.push("")
+                router.refresh()
             }
         } catch (error) {
             console.error("Login error:", error)
