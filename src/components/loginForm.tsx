@@ -63,14 +63,12 @@ export default function LoginForm() {
         setIsLoading(true)
         try {
             const result = await signIn("credentials", {
-                email: formData.email.toLowerCase().trim(), // Normalize email
+                email: formData.email.toLowerCase().trim(),
                 password: formData.password,
                 redirect: false,
-                callbackUrl: "/",
             })
 
             if (result?.error) {
-                // Handle specific error messages
                 if (result.error === "Missing required fields") {
                     toast.error("Please fill in all required fields")
                 } else if (result.error === "Invalid email format") {
@@ -80,8 +78,9 @@ export default function LoginForm() {
                 }
             } else if (result?.ok) {
                 toast.success("Login successful!")
-                router.push("/")
-                router.refresh()
+                // Use router.push for client-side navigation
+                router.refresh() // Refresh the session
+                router.push("/") // Navigate to home page
             }
         } catch (error) {
             console.error("Login error:", error)

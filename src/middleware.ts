@@ -24,8 +24,5 @@ export const config = {
         "/dashboard/:path*",
         "/profile/:path*",
         "/settings/:path*",
-        
-        // Exclude auth routes
-        "/((?!api|_next/static|_next/image|favicon.ico|login|register).*)",
     ]
 } 
