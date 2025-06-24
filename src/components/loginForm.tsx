@@ -63,10 +63,10 @@ export default function LoginForm() {
         setIsLoading(true)
         try {
             const result = await signIn("credentials", {
-                email: formData.email.toLowerCase().trim(), // Normalize email
+                email: formData.email.toLowerCase().trim(), 
                 password: formData.password,
                 redirect: false,
-                callbackUrl: "https://multikart-pink.vercel.app",
+                callbackUrl: "/",
             })
 
             if (result?.error) {
@@ -80,7 +80,7 @@ export default function LoginForm() {
                 }
             } else if (result?.ok) {
                 toast.success("Login successful!")
-                router.push("")
+                router.push("/")
                 router.refresh()
             }
         } catch (error) {
