@@ -65,10 +65,18 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async redirect({ url, baseUrl }) {
-      // Allows relative URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
+      // Always allow redirects to dashboard
+      if (url.includes("/dashboard")) {
+        return url
+      }
+      // Allow relative URLs
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`
+      }
+      // Allow same origin URLs
+      if (url.startsWith(baseUrl)) {
+        return url
+      }
       return baseUrl
     }
   },
@@ -77,18 +85,7 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development",
-  cookies: {
-    sessionToken: {
-      name: process.env.NODE_ENV === "production" ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === "production"
-      }
-    }
-  }
+  debug: true // Enable debug mode to see what's happening
 }
 
 const handler = NextAuth(authOptions)

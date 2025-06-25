@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import toast from "react-hot-toast"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 
 interface LoginFormData {
@@ -21,6 +21,8 @@ export default function LoginForm() {
         password: "",
     })
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
 
     const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
@@ -62,15 +64,16 @@ export default function LoginForm() {
 
         setIsLoading(true)
         try {
+            // First attempt with redirect: true
             const result = await signIn("credentials", {
-                email: formData.email.toLowerCase().trim(), 
+                email: formData.email.toLowerCase().trim(),
                 password: formData.password,
-                redirect: false,
-                callbackUrl: "/",
+                redirect: true,
+                callbackUrl: callbackUrl
             })
 
+            // If we get here, it means redirect didn't work
             if (result?.error) {
-                // Handle specific error messages
                 if (result.error === "Missing required fields") {
                     toast.error("Please fill in all required fields")
                 } else if (result.error === "Invalid email format") {
@@ -80,7 +83,7 @@ export default function LoginForm() {
                 }
             } else if (result?.ok) {
                 toast.success("Login successful!")
-                router.push("/")
+                router.push(callbackUrl)
                 router.refresh()
             }
         } catch (error) {

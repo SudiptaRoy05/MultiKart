@@ -4,25 +4,26 @@ import { NextResponse } from "next/server"
 export default withAuth(
     // Function that runs when middleware matches
     function middleware(req) {
+        // Add debug logging
+        console.log('Middleware Debug:')
+        console.log('URL:', req.url)
+        console.log('NextAuth Token:', !!req.nextauth?.token)
         return NextResponse.next()
     },
     {
         callbacks: {
-            authorized: ({ token }) => !!token
+            authorized: ({ token }) => {
+                console.log('Auth check token:', !!token)
+                return !!token
+            }
         },
+        pages: {
+            signIn: '/login',
+        }
     }
 )
 
+// Protect dashboard routes
 export const config = {
-    // Protected routes - add your protected routes here
-    matcher: [
-        // Protected API routes
-        "/api/user/:path*",
-        "/api/protected/:path*",
-        
-        // Protected pages
-        "/dashboard/:path*",
-        "/profile/:path*",
-        "/settings/:path*",
-    ]
-} 
+    matcher: ['/dashboard/:path*']
+}

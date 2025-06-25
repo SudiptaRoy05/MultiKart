@@ -55,7 +55,8 @@ export async function POST(request: Request) {
                 email: email.toLowerCase(),
                 password: hashedPassword,
                 name: name.trim(),
-                createdAt: new Date()
+                createdAt: new Date(),
+                role: "user"
             })
 
             return NextResponse.json({
