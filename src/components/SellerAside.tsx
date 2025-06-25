@@ -16,7 +16,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { ShopSelector } from "./ShopSelector";
-import { useShop } from "@/app/hooks/shoiContext";
+import { useShop } from "@/app/hooks/shopContext";
 
 export default function SellerAside() {
   const pathname = usePathname();

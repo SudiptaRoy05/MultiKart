@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useShop } from "@/app/hooks/shoiContext";
+import { useShop } from "@/app/hooks/shopContext";
 import {
   Select,
   SelectContent,
@@ -29,7 +29,7 @@ export function ShopSelector() {
     const fetchShops = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch("/api/getShop");
+        const response = await fetch("/api/shop");
         const data = await response.json();
         if (data.shops) {
           setShops(data.shops);

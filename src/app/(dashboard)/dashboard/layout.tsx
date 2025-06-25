@@ -1,4 +1,4 @@
-import { ShopProvider } from "@/app/hooks/shoiContext";
+import { ShopProvider } from "@/app/hooks/shopContext";
 import DashboardAside from "@/components/DashboardAside";
 import DashboardNavbar from "@/components/DashboardNavbar";
 

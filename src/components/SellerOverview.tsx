@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Loader2 } from "lucide-react";
-import { useShop } from "@/app/hooks/shoiContext";
+import { useShop } from "@/app/hooks/shopContext";
 
 export default function SellerOverview() {
     const { selectedShop, isLoading } = useShop();
