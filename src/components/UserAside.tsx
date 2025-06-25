@@ -42,7 +42,7 @@ export default function UserAside() {
       label: "Payments",
     },
     {
-      href: "/dashboard/shop",
+      href: "/dashboard/createshop",
       icon: Store,
       label: "Create Shop",
     },

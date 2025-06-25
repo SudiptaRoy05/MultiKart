@@ -2,14 +2,33 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { useShop } from "@/app/hooks/shoiContext";
 
 export default function SellerOverview() {
+    const { selectedShop, isLoading } = useShop();
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!selectedShop) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground">Please select a shop to view overview</p>
+            </div>
+        );
+    }
+
     return (
         <div className="p-6 space-y-6">
             {/* Welcome Message */}
             <div>
-                <h1 className="text-2xl font-bold">Welcome back, Seller!</h1>
+                <h1 className="text-2xl font-bold">Welcome back, {selectedShop.name}!</h1>
                 <p className="text-muted-foreground mt-1">
                     You've made <span className="font-semibold">$2,450</span> today.
                 </p>
