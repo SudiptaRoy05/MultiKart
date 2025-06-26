@@ -63,29 +63,13 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name as string
       }
       return session
-    },
-    async redirect({ url, baseUrl }) {
-      // Always allow redirects to dashboard
-      if (url.includes("/dashboard")) {
-        return url
-      }
-      // Allow relative URLs
-      if (url.startsWith("/")) {
-        return `${baseUrl}${url}`
-      }
-      // Allow same origin URLs
-      if (url.startsWith(baseUrl)) {
-        return url
-      }
-      return baseUrl
     }
   },
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: true // Enable debug mode to see what's happening
+  secret: process.env.NEXTAUTH_SECRET
 }
 
 const handler = NextAuth(authOptions)

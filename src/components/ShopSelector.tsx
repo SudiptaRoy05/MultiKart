@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useShop } from "@/app/hooks/shopContext";
+import { useSession } from "next-auth/react";
 import {
   Select,
   SelectContent,
@@ -24,29 +25,32 @@ interface Shop {
 export function ShopSelector() {
   const [shops, setShops] = useState<Shop[]>([]);
   const { selectedShop, setSelectedShop, isLoading, setIsLoading } = useShop();
+  const { data: session } = useSession();
+
+  const fetchShops = useCallback(async () => {
+    if (!session?.user?.email) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/shop?email=${encodeURIComponent(session.user.email)}`);
+      const data = await response.json();
+      if (data.shops) {
+        setShops(data.shops);
+        // If no shop is selected and we have shops, select the first one
+        if (!selectedShop && data.shops.length > 0) {
+          setSelectedShop(data.shops[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch shops:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setIsLoading, selectedShop, setSelectedShop, session?.user?.email]);
 
   useEffect(() => {
-    const fetchShops = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch("/api/shop");
-        const data = await response.json();
-        if (data.shops) {
-          setShops(data.shops);
-          // If no shop is selected and we have shops, select the first one
-          if (!selectedShop && data.shops.length > 0) {
-            setSelectedShop(data.shops[0]);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch shops:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchShops();
-  }, []); // Remove selectedShop and setSelectedShop from dependencies
+  }, [fetchShops]);
 
   const handleShopChange = (shopId: string) => {
     const shop = shops.find((s) => s._id === shopId);
@@ -56,7 +60,11 @@ export function ShopSelector() {
   };
 
   if (shops.length === 0 && !isLoading) {
-    return null;
+    return (
+      <div className="text-sm text-muted-foreground">
+        No shops found. Create your first shop!
+      </div>
+    );
   }
 
   return (

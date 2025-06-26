@@ -1,7 +1,7 @@
 "use client"
 
-import { signIn } from "next-auth/react"
-import { useState, ChangeEvent, FormEvent } from "react"
+import { signIn, useSession } from "next-auth/react"
+import { useState, ChangeEvent, FormEvent, useEffect } from "react"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,11 +21,19 @@ export default function LoginForm() {
         password: "",
     })
     const router = useRouter()
+    const { data: session, status, update } = useSession()
     const searchParams = useSearchParams()
     const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
 
     const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+
+    // Handle session changes
+    useEffect(() => {
+        if (status === 'authenticated' && session) {
+            router.push(callbackUrl)
+        }
+    }, [status, session, router, callbackUrl])
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
@@ -64,15 +72,12 @@ export default function LoginForm() {
 
         setIsLoading(true)
         try {
-            // First attempt with redirect: true
             const result = await signIn("credentials", {
                 email: formData.email.toLowerCase().trim(),
                 password: formData.password,
-                redirect: true,
-                callbackUrl: callbackUrl
+                redirect: false
             })
 
-            // If we get here, it means redirect didn't work
             if (result?.error) {
                 if (result.error === "Missing required fields") {
                     toast.error("Please fill in all required fields")
@@ -83,6 +88,9 @@ export default function LoginForm() {
                 }
             } else if (result?.ok) {
                 toast.success("Login successful!")
+                // Force a session update
+                await update()
+                // Force navigation
                 router.push(callbackUrl)
                 router.refresh()
             }
@@ -96,6 +104,15 @@ export default function LoginForm() {
 
     const togglePasswordVisibility = () => {
         setShowPassword((prev) => !prev)
+    }
+
+    // If already authenticated, redirect
+    if (status === 'authenticated') {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        )
     }
 
     return (

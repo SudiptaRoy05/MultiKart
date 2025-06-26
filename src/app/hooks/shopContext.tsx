@@ -16,7 +16,7 @@ interface Shop {
 
 interface ShopContextType {
     selectedShop: Shop | null;
-    setSelectedShop: (shop: Shop) => void;
+    setSelectedShop: (shop: Shop | null) => void;
     isLoading: boolean;
     setIsLoading: (loading: boolean) => void;
 }
