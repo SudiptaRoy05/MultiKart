@@ -10,6 +10,14 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import Link from "next/link";
 import Image from "next/image";
 import { useShop } from "@/app/hooks/shopContext";
@@ -50,6 +58,44 @@ export default function ProductsPage() {
     const { data: session } = useSession();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; productId: string | null }>({
+        open: false,
+        productId: null,
+    });
+
+    const handleDeleteClick = (productId: string) => {
+        setDeleteDialog({ open: true, productId });
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteDialog.productId || !selectedShop?._id || !session?.user?.email) return;
+        
+        setIsDeleting(deleteDialog.productId);
+        try {
+            const res = await fetch(
+                `/api/product?productId=${deleteDialog.productId}&shopId=${selectedShop._id}`,
+                {
+                    method: "DELETE",
+                }
+            );
+
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.error || "Failed to delete product");
+            }
+
+            // Remove the product from the state
+            setProducts((prev) => prev.filter((p) => p._id !== deleteDialog.productId));
+            toast.success("Product deleted successfully");
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Failed to delete product");
+        } finally {
+            setIsDeleting(null);
+            setDeleteDialog({ open: false, productId: null });
+        }
+    };
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -116,55 +162,103 @@ export default function ProductsPage() {
                     </Link>
                 </div>
             ) : (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Image</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>SKU</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Stock</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {products.map((product) => (
-                            <TableRow key={product._id}>
-                                <TableCell>
-                                    <Image
-                                        src={product.imageUrl}
-                                        alt={product.name}
-                                        width={48}
-                                        height={48}
-                                        className="object-cover rounded"
-                                    />
-                                </TableCell>
-                                <TableCell>{product.name}</TableCell>
-                                <TableCell>{product.sku}</TableCell>
-                                <TableCell>${product.price.toFixed(2)}</TableCell>
-                                <TableCell>{product.quantity}</TableCell>
-                                <TableCell>
-                                    <span
-                                        className={`px-2 py-1 rounded-full text-white ${getStatusColor(
-                                            product.status
-                                        )}`}
-                                    >
-                                        {product.status}
-                                    </span>
-                                </TableCell>
-                                <TableCell>
-                                    <button className="text-blue-500 mr-2 hover:underline">
-                                        Edit
-                                    </button>
-                                    <button className="text-red-500 hover:underline">
-                                        Delete
-                                    </button>
-                                </TableCell>
+                <>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Image</TableHead>
+                                <TableHead>Name</TableHead>
+                                <TableHead>SKU</TableHead>
+                                <TableHead>Price</TableHead>
+                                <TableHead>Stock</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Actions</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {products.map((product) => (
+                                <TableRow key={product._id}>
+                                    <TableCell>
+                                        <Image
+                                            src={product.imageUrl}
+                                            alt={product.name}
+                                            width={48}
+                                            height={48}
+                                            className="object-cover rounded"
+                                        />
+                                    </TableCell>
+                                    <TableCell>{product.name}</TableCell>
+                                    <TableCell>{product.sku}</TableCell>
+                                    <TableCell>${product.price.toFixed(2)}</TableCell>
+                                    <TableCell>{product.quantity}</TableCell>
+                                    <TableCell>
+                                        <span
+                                            className={`px-2 py-1 rounded-full text-white ${getStatusColor(
+                                                product.status
+                                            )}`}
+                                        >
+                                            {product.status}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Link href={`/dashboard/product/edit/${product._id}`}>
+                                            <Button
+                                                variant="ghost"
+                                                className="text-blue-500 hover:text-blue-700 mr-2"
+                                            >
+                                                Edit
+                                            </Button>
+                                        </Link>
+                                        <Button
+                                            variant="ghost"
+                                            className="text-red-500 hover:text-red-700"
+                                            onClick={() => handleDeleteClick(product._id)}
+                                            disabled={isDeleting === product._id}
+                                        >
+                                            {isDeleting === product._id ? (
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+                                            ) : (
+                                                "Delete"
+                                            )}
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+
+                    <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, productId: open ? deleteDialog.productId : null })}>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle className="text-red-500">Confirm Deletion</DialogTitle>
+                                <DialogDescription>
+                                    Are you sure you want to delete this product? This action cannot be undone.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter className="sm:justify-start">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => setDeleteDialog({ open: false, productId: null })}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    className="bg-red-500 text-white hover:bg-red-600"
+                                    onClick={handleDeleteConfirm}
+                                    disabled={isDeleting !== null}
+                                >
+                                    {isDeleting !== null ? (
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    ) : (
+                                        "Delete Product"
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </>
             )}
         </div>
     );

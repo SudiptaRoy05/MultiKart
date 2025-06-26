@@ -7,6 +7,9 @@ import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
 import { useShop } from "@/app/hooks/shopContext";
 import { useRouter } from "next/navigation";
+import { Label } from "@/components/ui/label";
+import { Toggle } from "@/components/ui/toggle";
+import { Star } from "lucide-react";
 
 interface PricingData {
   price: string;
@@ -20,6 +23,7 @@ interface FormData {
   description: string;
   category: string;
   pricing: PricingData;
+  featured: boolean;
 }
 
 const categories = [
@@ -93,6 +97,7 @@ export default function AddProductForm() {
       quantity: "",
       sku: "",
     },
+    featured: false,
   });
 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -139,6 +144,13 @@ export default function AddProductForm() {
     }
   };
 
+  const handleFeaturedToggle = (pressed: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      featured: pressed,
+    }));
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -181,7 +193,8 @@ export default function AddProductForm() {
       quantity: Number(formData.pricing.quantity),
       sku: formData.pricing.sku || `SKU-${Date.now()}`,
       shopId: selectedShop._id,
-      userEmail: session.user.email
+      userEmail: session.user.email,
+      featured: formData.featured,
     };
 
     try {
@@ -204,14 +217,16 @@ export default function AddProductForm() {
         description: "",
         category: "Select Category",
         pricing: { price: "", salePrice: "", quantity: "", sku: "" },
+        featured: false,
       });
       setSelectedImage(null);
       setImageUrl("");
       
       // Redirect to products page
       router.push("/dashboard/product");
-    } catch (error) {
-      toast.error((error as Error).message || "Something went wrong");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to add product");
     }
   };
 
@@ -375,6 +390,19 @@ export default function AddProductForm() {
           )}
         </div>
 
+        {/* Featured Toggle */}
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="featured">Featured Product</Label>
+          <Toggle
+            id="featured"
+            pressed={formData.featured}
+            onPressedChange={handleFeaturedToggle}
+            className="data-[state=on]:bg-yellow-500"
+          >
+            <Star className={`h-4 w-4 ${formData.featured ? 'fill-current' : ''}`} />
+          </Toggle>
+        </div>
+
         {/* Buttons */}
         <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-neutral-800">
           <button
@@ -386,6 +414,7 @@ export default function AddProductForm() {
                 description: "",
                 category: "Select Category",
                 pricing: { price: "", salePrice: "", quantity: "", sku: "" },
+                featured: false,
               });
               setSelectedImage(null);
               setImageUrl("");

@@ -1,8 +1,11 @@
+import Hero from "@/components/Hero";
+import FeatureProduct from "./featureproduct/page";
 
 export default function Home() {
   return (
     <div>
-      Hello From Home
+      <Hero />
+      <FeatureProduct />
     </div>
   )
 }

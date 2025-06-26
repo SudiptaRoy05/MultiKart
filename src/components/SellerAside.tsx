@@ -9,6 +9,7 @@ import {
   User,
   Building2,
   Text,
+  Star,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -48,6 +49,14 @@ export default function SellerAside() {
           <Link href="/dashboard/product" className={linkClass("/dashboard/product")}>
             <Package className="w-5 h-5" />
             Products
+          </Link>
+          <Link href="/dashboard/featured" className={linkClass("/dashboard/featured")}>
+            <Star className="w-5 h-5" />
+            Featured Products
+          </Link>
+          <Link href="/dashboard/allproducts" className={linkClass("/dashboard/allproducts")}>
+            <Package className="w-5 h-5" />
+            All Products
           </Link>
           <Link href="/dashboard/order" className={linkClass("/dashboard/order")}>
             <ShoppingCart className="w-5 h-5" />
