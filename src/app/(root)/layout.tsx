@@ -15,9 +15,9 @@ export default function RootLayout({
             <main>
                 {children}
             </main>
-            <Suspense fallback={null}>
-                <Footer />
-            </Suspense>
+
+            <Footer />
+
         </div>
     )
 }
