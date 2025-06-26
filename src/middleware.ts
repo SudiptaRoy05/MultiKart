@@ -40,7 +40,6 @@ export const middleware = async (req: NextRequest) => {
 // Protect specific routes:
 // - /dashboard/* - All dashboard routes
 // - /api/shop/* - Shop-related API routes
-// - /api/getShop/* - Shop retrieval API routes
 // - /api/user/* - User-related API routes
 // But exclude authentication routes
 export const config = {

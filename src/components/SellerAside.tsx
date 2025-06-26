@@ -8,13 +8,11 @@ import {
   Store,
   User,
   Building2,
-  Tag,
   Text,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 import { ShopSelector } from "./ShopSelector";
 import { useShop } from "@/app/hooks/shopContext";
 
@@ -27,15 +25,15 @@ export default function SellerAside() {
     `flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
       pathname === path
         ? "bg-primary/10 text-primary font-semibold"
-        : "hover:bg-muted text-muted-foreground"
+        : "hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300"
     }`;
 
   return (
-    <aside className="w-64 border-r px-4 py-6 flex flex-col justify-between min-h-screen bg-white dark:bg-gray-900">
+    <aside className="w-64 border-r border-gray-200 dark:border-neutral-800 px-4 py-6 flex flex-col justify-between min-h-screen bg-white dark:bg-black">
       <div>
         {/* Title */}
         <div className="mb-6">
-          <div className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">
+          <div className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
             Seller Dashboard
           </div>
           <ShopSelector />
@@ -72,21 +70,23 @@ export default function SellerAside() {
 
       {/* Shop Card */}
       {selectedShop && (
-        <div className="mt-8 border-t pt-4">
-          <div className="rounded-xl bg-muted/10 p-4 shadow-sm border text-sm">
+        <div className="mt-8 border-t border-gray-200 dark:border-neutral-800 pt-4">
+          <div className="rounded-xl bg-gray-100 dark:bg-neutral-900 p-4 shadow-sm border border-gray-200 dark:border-neutral-800 text-sm">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Store className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="font-semibold text-base">{selectedShop.name}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="font-semibold text-gray-900 dark:text-white text-base">
+                  {selectedShop.name}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Created {new Date(selectedShop.createdAt).toLocaleDateString()}
                 </p>
               </div>
             </div>
 
-            <div className="space-y-1 text-sm text-muted-foreground">
+            <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
                 <span>{selectedShop.owner.email}</span>
