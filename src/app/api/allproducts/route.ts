@@ -58,8 +58,14 @@ export async function GET(req: Request) {
       .limit(limit)
       .toArray();
 
+    // Format ObjectId to string for JSON serialization
+    const formattedProducts = products.map(product => ({
+      ...product,
+      _id: product._id.toString()
+    }));
+
     return NextResponse.json({
-      products,
+      products: formattedProducts,
       pagination: {
         currentPage: page,
         totalPages,
@@ -73,4 +79,4 @@ export async function GET(req: Request) {
       { status: 500 }
     );
   }
-}
+} 

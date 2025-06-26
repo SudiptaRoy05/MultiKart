@@ -13,13 +13,16 @@ import {
 } from "@/components/ui/select";
 import { useTheme } from "next-themes";
 import { useSession } from "next-auth/react";
+import { useCurrentUser } from "@/app/hooks/useCurrentUser";
+import { useShop } from "@/app/hooks/shopContext";
+import ShopSelector from "./ShopSelector";
 
 export default function DashboardNavbar() {
   const { theme, setTheme } = useTheme();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
+  const { user } = useCurrentUser();
 
-  const user = session?.user;
-  const userName = user?.name || user?.email || "Guest";
+  const userName = session?.user?.name || session?.user?.email || "Guest";
   const initials =
     userName
       .split(" ")
@@ -33,7 +36,10 @@ export default function DashboardNavbar() {
       <div>
         {/* Top Navbar */}
         <div className="flex items-center justify-between px-6 py-2">
-          <div className="text-2xl font-bold text-red-500">Multikart</div>
+          <div className="flex items-center gap-4">
+            <div className="text-2xl font-bold text-red-500">Multikart</div>
+            {user?.role === "seller" && <ShopSelector />}
+          </div>
 
           <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-300">
             {/* Language */}

@@ -1,20 +1,29 @@
 "use client"
 
-import { SessionProvider } from "next-auth/react"
 import { ThemeProvider } from "@/components/theme-provider"
+import { SessionProvider } from "next-auth/react"
+import { ShoppingProvider } from "@/app/hooks/useShoppingContext"
 import { Toaster } from "react-hot-toast"
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({
+    children,
+    session,
+}: {
+    children: React.ReactNode;
+    session: any;
+}) {
     return (
-        <SessionProvider>
+        <SessionProvider session={session}>
             <ThemeProvider
                 attribute="class"
                 defaultTheme="system"
                 enableSystem
                 disableTransitionOnChange
             >
-                <Toaster />
-                {children}
+                <ShoppingProvider>
+                    {children}
+                    <Toaster position="top-right" />
+                </ShoppingProvider>
             </ThemeProvider>
         </SessionProvider>
     )

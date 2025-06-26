@@ -74,6 +74,7 @@ export default function RegisterForm() {
 
         setIsLoading(true)
         try {
+            // Register the user
             const response = await fetch('/api/register', {
                 method: 'POST',
                 headers: {
@@ -88,26 +89,32 @@ export default function RegisterForm() {
 
             const data = await response.json()
 
-            if (response.ok) {
-                toast.success("Registration successful!")
-                // Auto sign-in after successful registration
-                const signInResult = await signIn("credentials", {
-                    email: formData.email.toLowerCase().trim(),
-                    password: formData.password,
-                    redirect: false,
-                })
-
-                if (signInResult?.ok) {
-                    // Use router for navigation
-                    router.refresh() // Refresh the session
-                    router.push("/") // Navigate to home page
-                }
-            } else {
-                toast.error(data.error || "Registration failed. Please try again.")
+            if (!response.ok) {
+                throw new Error(data.error || "Registration failed")
             }
+
+            // Sign in the user
+            const signInResult = await signIn("credentials", {
+                email: formData.email.toLowerCase().trim(),
+                password: formData.password,
+                redirect: false,
+            })
+
+            if (signInResult?.error) {
+                throw new Error("Failed to sign in after registration")
+            }
+
+            toast.success("Registration successful!")
+            
+            // Wait a bit for the session to be ready
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            
+            // Redirect to home page
+            router.push("/")
+            router.refresh()
         } catch (error) {
             console.error("Registration error:", error)
-            toast.error("An unexpected error occurred. Please try again.")
+            toast.error(error instanceof Error ? error.message : "An unexpected error occurred")
         } finally {
             setIsLoading(false)
         }

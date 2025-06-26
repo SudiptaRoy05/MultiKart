@@ -12,8 +12,12 @@ export const middleware = async (req: NextRequest) => {
             secureCookie: process.env.NODE_ENV === "production",
         })
 
-        // For API routes
-        if (pathname.startsWith('/api/')) {
+        // For API routes that require authentication
+        if (pathname.startsWith('/api/') && 
+            (pathname.startsWith('/api/shop/') || 
+             pathname.startsWith('/api/user/') ||
+             pathname.startsWith('/api/cart/') ||
+             pathname.startsWith('/api/wishlist/'))) {
             if (!token) {
                 return new NextResponse(
                     JSON.stringify({ error: 'Authentication required' }),
@@ -24,7 +28,7 @@ export const middleware = async (req: NextRequest) => {
         }
 
         // For protected pages
-        if (!token) {
+        if (pathname.startsWith('/dashboard/') && !token) {
             const url = new URL('/login', req.url)
             url.searchParams.set('callbackUrl', pathname)
             return NextResponse.redirect(url)
@@ -41,18 +45,14 @@ export const middleware = async (req: NextRequest) => {
 // - /dashboard/* - All dashboard routes
 // - /api/shop/* - Shop-related API routes
 // - /api/user/* - User-related API routes
-// But exclude authentication routes
+// - /api/cart/* - Cart-related API routes
+// - /api/wishlist/* - Wishlist-related API routes
 export const config = {
     matcher: [
         '/dashboard/:path*',
         '/api/shop/:path*',
-        '/api/shop/:path*',
         '/api/user/:path*',
-        '/api/product/:path*',
-        '/api/order/:path*',
-        // Add more protected routes as needed
-        
-        // Negative lookahead to exclude auth routes
-        '/((?!api/auth|login|register|_next/static|_next/image).*)',
+        '/api/cart/:path*',
+        '/api/wishlist/:path*',
     ]
 }

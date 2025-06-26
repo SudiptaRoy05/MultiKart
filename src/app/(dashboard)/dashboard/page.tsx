@@ -8,17 +8,16 @@ import UserOverview from "@/components/UserOverview";
 import { useCurrentUser } from "@/app/hooks/useCurrentUser";
 
 export default function Dashboard() {
-  const { data: session, status } = useSession({
+  const { status } = useSession({
     required: true,
     onUnauthenticated() {
       redirect("/login?callbackUrl=/dashboard");
     },
   });
 
-  const user = useCurrentUser();
-  console.log(user?.user?.role)
+  const { user, loading, error } = useCurrentUser();
 
-  if (status === "loading") {
+  if (status === "loading" || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -29,17 +28,21 @@ export default function Dashboard() {
     );
   }
 
+  if (error || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-sm text-destructive">Failed to load user data</p>
+          <p className="text-xs text-muted-foreground">Please refresh the page</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
-
-      {
-        user.user?.role === "user" && <UserOverview />
-      }
-
-      {
-        user.user?.role === "seller" && <SellerOverview />
-      }
-      {/* <SellerOverview /> */}
+      {user.role === "user" && <UserOverview />}
+      {user.role === "seller" && <SellerOverview />}
     </div>
   );
 }

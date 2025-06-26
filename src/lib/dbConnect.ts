@@ -13,15 +13,25 @@ const uri = `mongodb+srv://${MONGODB_UNAME}:${MONGODB_PASS}@cluster0.lue0n.mongo
 // Singleton client instance for hot-reloading in dev
 let cachedClient: MongoClient | null = null
 
-function getMongoClient(): MongoClient {
+async function getMongoClient(): Promise<MongoClient> {
   if (!cachedClient) {
-    cachedClient = new MongoClient(uri, {
-      serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-      },
-    })
+    try {
+      cachedClient = new MongoClient(uri, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        },
+      })
+      // Test the connection
+      await cachedClient.connect()
+      await cachedClient.db("admin").command({ ping: 1 })
+      console.log("Successfully connected to MongoDB.")
+    } catch (error) {
+      console.error("MongoDB connection error:", error)
+      cachedClient = null
+      throw new Error("Failed to connect to MongoDB")
+    }
   }
   return cachedClient
 }
@@ -29,14 +39,16 @@ function getMongoClient(): MongoClient {
 // Strict collection names
 export const collectionNameObj = {
   userCollection: "users",
-  shopCollection: "shops",
   productCollection: "products",
+  shopCollection: "shops",
+  cartCollection: "carts",
+  wishlistCollection: "wishlists",
 } as const
 
 // Generic database connector
-export function dbConnect<T extends Document = Document>(
+export async function dbConnect<T extends Document = Document>(
   collectionName: keyof typeof collectionNameObj | string
-): Collection<T> {
-  const client = getMongoClient()
+): Promise<Collection<T>> {
+  const client = await getMongoClient()
   return client.db(DB_NAME).collection<T>(collectionName)
 }

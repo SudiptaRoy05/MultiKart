@@ -33,7 +33,7 @@ export async function POST(request: Request) {
         }
 
         try {
-            const userCollection = dbConnect(collectionNameObj.userCollection)
+            const userCollection = await dbConnect(collectionNameObj.userCollection)
             
             // Check if user already exists
             const existingUser = await userCollection.findOne({ 
@@ -50,20 +50,27 @@ export async function POST(request: Request) {
             // Hash password
             const hashedPassword = await bcrypt.hash(password, 10)
 
-            // Create user
+            // Create user with default values
             const result = await userCollection.insertOne({
                 email: email.toLowerCase(),
                 password: hashedPassword,
                 name: name.trim(),
                 createdAt: new Date(),
-                role: "user"
+                role: "user",
+                cart: [],
+                wishlist: [],
+                orders: []
             })
 
-            return NextResponse.json({
-                id: result.insertedId.toString(),
+            // Format the response
+            const user = {
+                _id: result.insertedId.toString(),
                 email: email.toLowerCase(),
-                name: name.trim()
-            })
+                name: name.trim(),
+                role: "user"
+            };
+
+            return NextResponse.json(user);
         } catch (dbError) {
             console.error("Database error during registration:", dbError)
             return NextResponse.json(

@@ -10,17 +10,23 @@ export async function GET(request: Request) {
   }
 
   try {
-    const usersCollection = dbConnect(collectionNameObj.userCollection);
+    const usersCollection = await dbConnect(collectionNameObj.userCollection);
     const user = await usersCollection.findOne({ email });
 
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
+    // Convert _id to string and remove sensitive data
     const { hashedPassword, ...safeUser } = user;
-    return NextResponse.json(safeUser);
+    const formattedUser = {
+      ...safeUser,
+      _id: safeUser._id.toString()
+    };
+
+    return NextResponse.json(formattedUser);
   } catch (error) {
-    console.error(error);
+    console.error("User fetch error:", error);
     return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }

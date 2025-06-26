@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import { useShop } from "@/app/hooks/shopContext";
-import { useSession } from "next-auth/react";
 import {
   Select,
   SelectContent,
@@ -12,86 +10,52 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
-interface Shop {
-  _id: string;
-  name: string;
-  owner: {
-    email: string;
-  };
-  description?: string;
-  createdAt: string;
-}
+export default function ShopSelector() {
+  const { selectedShop, setSelectedShop, isLoading, error, shops } = useShop();
 
-export function ShopSelector() {
-  const [shops, setShops] = useState<Shop[]>([]);
-  const { selectedShop, setSelectedShop, isLoading, setIsLoading } = useShop();
-  const { data: session } = useSession();
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Loading shops...</span>
+      </div>
+    );
+  }
 
-  const fetchShops = useCallback(async () => {
-    if (!session?.user?.email) return;
+  if (error) {
+    return (
+      <div className="text-sm text-destructive">
+        Failed to load shops
+      </div>
+    );
+  }
 
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/shop?email=${encodeURIComponent(session.user.email)}`);
-      const data = await response.json();
-      if (data.shops) {
-        setShops(data.shops);
-        // If no shop is selected and we have shops, select the first one
-        if (!selectedShop && data.shops.length > 0) {
-          setSelectedShop(data.shops[0]);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch shops:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setIsLoading, selectedShop, setSelectedShop, session?.user?.email]);
-
-  useEffect(() => {
-    fetchShops();
-  }, [fetchShops]);
-
-  const handleShopChange = (shopId: string) => {
-    const shop = shops.find((s) => s._id === shopId);
-    if (shop) {
-      setSelectedShop(shop);
-    }
-  };
-
-  if (shops.length === 0 && !isLoading) {
+  if (!shops.length) {
     return (
       <div className="text-sm text-muted-foreground">
-        No shops found. Create your first shop!
+        No shops found
       </div>
     );
   }
 
   return (
-    <div className="relative">
-      <Select
-        value={selectedShop?._id}
-        onValueChange={handleShopChange}
-        disabled={isLoading}
-      >
-        <SelectTrigger className="w-[200px]">
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading...</span>
-            </div>
-          ) : (
-            <SelectValue placeholder="Select a shop" />
-          )}
-        </SelectTrigger>
-        <SelectContent>
-          {shops.map((shop) => (
-            <SelectItem key={shop._id} value={shop._id}>
-              {shop.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <Select
+      value={selectedShop?._id}
+      onValueChange={(value) => {
+        const shop = shops.find((s) => s._id === value);
+        setSelectedShop(shop || null);
+      }}
+    >
+      <SelectTrigger className="w-[200px]">
+        <SelectValue placeholder="Select a shop" />
+      </SelectTrigger>
+      <SelectContent>
+        {shops.map((shop) => (
+          <SelectItem key={shop._id} value={shop._id}>
+            {shop.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 } 

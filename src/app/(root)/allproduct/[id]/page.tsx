@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useState, useEffect, use } from "react";
 import toast from "react-hot-toast";
+import { useShopping } from "@/app/hooks/useShoppingContext";
 
 interface Product {
   _id: string;
@@ -20,25 +21,30 @@ interface Product {
   category: string;
   salePrice?: number;
   sku?: string;
+  shop: {
+    _id: string;
+    name: string;
+  };
 }
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 export default function ProductDetails({ params }: PageProps) {
   const router = useRouter();
-  const { id } = use(params);
+  const { id } = params;
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isInWishlist, setIsInWishlist] = useState(false);
-  const [addingToCart, setAddingToCart] = useState(false);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [addingToCart, setAddingToCart] = useState(false);
 
-  // Use only the actual product image
-  const productImages = [product?.imageUrl || "/images/placeholder-product.png"];
+  const { addToCart, toggleWishlist, isInWishlist, refreshCart } = useShopping();
+
+  // Update placeholder image path
+  const productImages = [product?.imageUrl || "/images/placeholder.png"];
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -60,23 +66,24 @@ export default function ProductDetails({ params }: PageProps) {
     fetchProduct();
   }, [id]);
 
-  const toggleWishlist = () => {
-    setIsInWishlist(!isInWishlist);
-    toast.success(isInWishlist ? "Removed from wishlist" : "Added to wishlist");
-  };
-
-  const addToCart = async () => {
+  const handleAddToCart = async () => {
     if (!product) return;
-
+    
     setAddingToCart(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      toast.success(`Added ${selectedQuantity} item(s) to cart!`);
+      await addToCart(product._id, selectedQuantity);
+      await refreshCart();
+      toast.success("Added to cart!");
     } catch {
       toast.error("Failed to add to cart");
     } finally {
       setAddingToCart(false);
     }
+  };
+
+  const handleToggleWishlist = async () => {
+    if (!product) return;
+    await toggleWishlist(product._id);
   };
 
   const shareProduct = () => {
@@ -177,7 +184,7 @@ export default function ProductDetails({ params }: PageProps) {
             <div className="space-y-4">
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800">
                 <Image
-                  src={productImages[selectedImage] || "/images/placeholder-product.png"}
+                  src={productImages[selectedImage] || "/images/placeholder.png"}
                   alt={product.name}
                   fill
                   className="object-cover transition-transform duration-300 hover:scale-105"
@@ -192,11 +199,11 @@ export default function ProductDetails({ params }: PageProps) {
                   variant="ghost"
                   size="icon"
                   className={`absolute top-4 right-4 bg-white/90 backdrop-blur-sm hover:bg-white transition-all ${
-                    isInWishlist ? "text-red-500" : "text-gray-600"
+                    isInWishlist(product._id) ? "text-red-500" : "text-gray-600"
                   }`}
-                  onClick={toggleWishlist}
+                  onClick={handleToggleWishlist}
                 >
-                  <Heart className={`h-5 w-5 ${isInWishlist ? "fill-current" : ""}`} />
+                  <Heart className={`h-5 w-5 ${isInWishlist(product._id) ? "fill-current" : ""}`} />
                 </Button>
                 <Button
                   variant="ghost"
@@ -333,7 +340,7 @@ export default function ProductDetails({ params }: PageProps) {
                 <Button 
                   disabled={product.quantity === 0 || addingToCart} 
                   className="flex-1 h-12 text-lg font-semibold bg-primary hover:bg-primary/90 transition-all"
-                  onClick={addToCart}
+                  onClick={handleAddToCart}
                 >
                   {addingToCart ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />

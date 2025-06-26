@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Insert the shop
-    await shopsCollection.insertOne(newShop);
+    const result = await shopsCollection.insertOne(newShop);
 
     // Update user's role to "seller"
     const updateResult = await usersCollection.updateOne(
@@ -64,42 +64,46 @@ export async function POST(req: NextRequest) {
       console.warn("User not found for role update:", userEmail);
     }
 
+    // Format the response
+    const formattedShop = {
+      ...newShop,
+      _id: result.insertedId.toString(),
+      createdAt: newShop.createdAt.toISOString()
+    };
+
     // Respond with success
-    return NextResponse.json({ success: true, shop: newShop }, { status: 201 });
+    return NextResponse.json({ success: true, shop: formattedShop }, { status: 201 });
   } catch (error) {
     console.error("[SHOP_CREATE_ERROR]", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
-
-
-
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const email = url.searchParams.get("email");
 
-    const shopsCollection = dbConnect(collectionNameObj.shopCollection);
-
-    let shops;
-
-    if (email) {
-      shops = await shopsCollection.find({ "owner.email": email }).toArray();
-    } else {
-      shops = await shopsCollection.find({}).toArray();
+    if (!email) {
+      return NextResponse.json({ error: "Email parameter is required" }, { status: 400 });
     }
 
-    // Convert _id ObjectId to string (optional but recommended)
-    const shopsFormatted = shops.map(shop => ({
+    const shopsCollection = await dbConnect(collectionNameObj.shopCollection);
+
+    const shops = await shopsCollection
+      .find({ "owner.email": email })
+      .toArray();
+
+    // Format the response
+    const formattedShops = shops.map(shop => ({
       ...shop,
       _id: shop._id.toString(),
-      createdAt: shop.createdAt.toISOString(),
+      createdAt: shop.createdAt.toISOString()
     }));
 
-    return NextResponse.json({ shops: shopsFormatted });
+    return NextResponse.json(formattedShops);
   } catch (error) {
-    console.error("Failed to fetch shops:", error);
+    console.error("[SHOP_FETCH_ERROR]", error);
     return NextResponse.json({ error: "Failed to fetch shops" }, { status: 500 });
   }
 }

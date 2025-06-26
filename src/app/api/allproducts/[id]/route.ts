@@ -1,20 +1,30 @@
 import { NextResponse } from "next/server";
-
-import { ObjectId } from "mongodb";
 import { collectionNameObj, dbConnect } from "@/lib/dbConnect";
+import { ObjectId } from "mongodb";
 
+// Get single product by ID (public)
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     const productsCollection = await dbConnect(collectionNameObj.productCollection);
+    
     const product = await productsCollection.findOne({ _id: new ObjectId(params.id) });
-
+    
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    return NextResponse.json(product);
+    // Format ObjectId to string for JSON serialization
+    const formattedProduct = {
+      ...product,
+      _id: product._id.toString()
+    };
+
+    return NextResponse.json(formattedProduct);
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch product" },
+      { status: 500 }
+    );
   }
 }

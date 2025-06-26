@@ -1,7 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcrypt"
-import { dbConnect } from "@/lib/dbConnect"
+import { dbConnect, collectionNameObj } from "@/lib/dbConnect"
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -17,7 +17,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const usersCollection = dbConnect("users")
+          const usersCollection = await dbConnect(collectionNameObj.userCollection)
           const user = await usersCollection.findOne({
             email: credentials.email.toLowerCase()
           })
@@ -34,7 +34,8 @@ export const authOptions: NextAuthOptions = {
           return {
             id: user._id.toString(),
             email: user.email,
-            name: user.name
+            name: user.name,
+            role: user.role
           }
         } catch (error) {
           console.error("Authorization error:", error)
@@ -53,6 +54,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.email = user.email
         token.name = user.name
+        token.role = user.role
       }
       return token
     },
@@ -61,6 +63,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.email = token.email as string
         session.user.name = token.name as string
+        session.user.role = token.role as string
       }
       return session
     }

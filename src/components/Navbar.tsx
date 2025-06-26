@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import { LogOut, Settings, ShoppingCart, Menu, User, Home, Store, Info, Mail, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ModeToggle } from "./ModeToggle"
+import { useShopping } from "@/app/hooks/useShoppingContext"
 
 const Navbar = () => {
   const router = useRouter()
@@ -25,6 +26,11 @@ const Navbar = () => {
   const userName = session?.user?.name || session?.user?.email || "User"
   const firstName = userName.split(" ")[0]
   const userImage = session?.user?.image
+  const pathname = usePathname();
+  const { cartCount, isLoading } = useShopping()
+
+  // Don't show navbar on auth pages
+  if (pathname === "/login" || pathname === "/register") return null
 
   const navigationItems = [
     { href: "/", label: "Home", icon: Home },
@@ -77,12 +83,14 @@ const Navbar = () => {
             onClick={() => router.push("/cart")}
           >
             <ShoppingCart className="h-5 w-5 text-red-600 transition-transform duration-200 group-hover:scale-110" />
-            <Badge 
-              variant="destructive" 
-              className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs font-bold shadow-lg animate-pulse"
-            >
-              3
-            </Badge>
+            {!isLoading && cartCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs font-bold shadow-lg animate-pulse"
+              >
+                {cartCount}
+              </Badge>
+            )}
           </Button>
 
           {/* Enhanced User Profile (Desktop) */}
@@ -176,7 +184,12 @@ const Navbar = () => {
                 <Menu className="h-5 w-5 text-red-600" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80 rounded-l-2xl border-0 bg-background/95 backdrop-blur-sm">
+            <SheetContent 
+              side="right" 
+              className="w-80 rounded-l-2xl border-0 bg-background/95 backdrop-blur-sm"
+              title="Navigation Menu"
+              description="Main navigation menu for mobile devices"
+            >
               <div className="flex flex-col h-full">
                 
                 {/* Mobile Header */}
@@ -225,7 +238,11 @@ const Navbar = () => {
                     >
                       <ShoppingCart className="h-5 w-5 text-red-600" />
                       <span>Cart</span>
-                      <Badge variant="destructive" className="ml-auto">3</Badge>
+                      {!isLoading && cartCount > 0 && (
+                        <Badge variant="destructive" className="ml-auto">
+                          {cartCount}
+                        </Badge>
+                      )}
                     </Link>
                     
                     {isAuthenticated && (
