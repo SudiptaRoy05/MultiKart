@@ -1,28 +1,62 @@
+import { NextResponse } from "next/server";
 import { collectionNameObj, dbConnect } from "@/lib/dbConnect";
-import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
-    const searchParams = req.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "12");
+    const search = searchParams.get("search") || "";
+    const category = searchParams.get("category") || "";
+    const sort = searchParams.get("sort") || "newest";
+
     const skip = (page - 1) * limit;
 
-    // Connect to product collection
+    // Build query
+    const query: any = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+    if (category && category !== "All Categories") {
+      query.category = category;
+    }
+
+    // Build sort
+    const sortQuery: any = {};
+    switch (sort) {
+      case "price-low":
+        sortQuery.price = 1;
+        break;
+      case "price-high":
+        sortQuery.price = -1;
+        break;
+      case "name-asc":
+        sortQuery.name = 1;
+        break;
+      case "name-desc":
+        sortQuery.name = -1;
+        break;
+      default: // newest
+        sortQuery.createdAt = -1;
+        break;
+    }
+
     const productsCollection = await dbConnect(collectionNameObj.productCollection);
 
-    // Count total documents
-    const totalProducts = await productsCollection.countDocuments();
+    // Get total count for pagination
+    const totalProducts = await productsCollection.countDocuments(query);
+    const totalPages = Math.ceil(totalProducts / limit);
 
-    // Fetch products with optional pagination
+    // Get products with pagination
     const products = await productsCollection
-      .find({})
-      .sort({ createdAt: -1 })
+      .find(query)
+      .sort(sortQuery)
       .skip(skip)
       .limit(limit)
       .toArray();
-
-    const totalPages = Math.ceil(totalProducts / limit);
 
     return NextResponse.json({
       products,
@@ -30,14 +64,12 @@ export async function GET(req: NextRequest) {
         currentPage: page,
         totalPages,
         totalProducts,
-        hasMore: page < totalPages,
-        limit,
       },
     });
-  } catch (error) {
-    console.error("[GET_PRODUCTS_ERROR]", error);
+  } catch (err) {
+    console.error(err);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Failed to fetch products" },
       { status: 500 }
     );
   }

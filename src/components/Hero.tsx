@@ -1,4 +1,3 @@
-// No change to imports
 import React from 'react';
 import { Search, ShoppingBag, Users, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,17 +7,17 @@ import { Card, CardContent } from '@/components/ui/card';
 
 export default function Hero() {
     return (
-        <div className="relative bg-gradient-to-br from-red-50 via-white to-rose-50 dark:from-gray-900 dark:via-gray-950 dark:to-black min-h-screen flex items-center transition-colors duration-500">
+        <div className="relative bg-gradient-to-br from-red-50 via-white to-rose-50 dark:from-gray-900 dark:via-gray-950 dark:to-black min-h-screen flex items-center transition-colors duration-500 w-full">
             {/* Background decorative elements */}
-            <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute inset-0 overflow-hidden w-full">
                 <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-200 dark:bg-rose-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
                 <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-rose-200 dark:bg-red-800 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
             </div>
 
-            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-                <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="relative w-full px-4 sm:px-6 lg:px-8 py-20">
+                <div className="grid lg:grid-cols-2 gap-12 items-center w-full max-w-none">
                     {/* Left Content */}
-                    <div className="text-center lg:text-left">
+                    <div className="text-center lg:text-left w-full">
                         <Badge variant="secondary" className="mb-6 bg-red-100 text-red-800 hover:bg-red-200 dark:bg-rose-950 dark:text-rose-300 dark:hover:bg-rose-900 transition-colors">
                             <Star className="w-4 h-4 mr-2" />
                             Trusted by 10,000+ vendors
@@ -81,7 +80,7 @@ export default function Hero() {
                     </div>
 
                     {/* Right Content - Visual Cards */}
-                    <div className="relative">
+                    <div className="relative w-full">
                         <div className="relative z-10">
                             <Card className="mb-6 transform rotate-3 hover:rotate-0 transition-transform duration-300 shadow-2xl dark:bg-gray-900 dark:border-gray-700">
                                 <CardContent className="p-6">
@@ -133,7 +132,7 @@ export default function Hero() {
             </div>
 
             {/* Bottom Wave */}
-            <div className="absolute bottom-0 left-0 right-0">
+            <div className="absolute bottom-0 left-0 right-0 w-full">
                 <svg className="w-full h-20 text-background dark:text-gray-900" viewBox="0 0 1200 120" preserveAspectRatio="none">
                     <path
                         d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"

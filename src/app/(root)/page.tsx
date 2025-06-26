@@ -1,11 +1,11 @@
 import Hero from "@/components/Hero";
-import FeatureProduct from "./featureproduct/page";
+import PublicAllProductsPage from "./allproduct/page";
 
 export default function Home() {
   return (
     <div>
       <Hero />
-      <FeatureProduct />
+      <PublicAllProductsPage />
     </div>
   )
 }
