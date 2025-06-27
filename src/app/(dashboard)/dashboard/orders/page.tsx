@@ -4,39 +4,27 @@ import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 
 type Order = {
   _id: string;
+  orderId: string;
   items: Array<{
     quantity: number;
     product: {
       name: string;
       price: number;
-      images: string[];
     };
   }>;
-  shippingInfo: {
-    firstName: string;
-    lastName: string;
-    address: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    phone: string;
-  };
-  paymentMethod: "card" | "cash";
   totals: {
-    subtotal: number;
-    shipping: number;
-    tax: number;
     total: number;
   };
   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
@@ -46,6 +34,8 @@ type Order = {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -53,7 +43,7 @@ export default function OrdersPage() {
         const response = await fetch("/api/orders");
         if (!response.ok) throw new Error("Failed to fetch orders");
         const data = await response.json();
-        setOrders(data.orders);
+        setOrders(data.orders || []);
       } catch (error) {
         toast.error("Failed to load orders");
         console.error(error);
@@ -82,6 +72,42 @@ export default function OrdersPage() {
     }
   };
 
+  const getActionButton = (status: Order["status"], orderId: string) => {
+    switch (status) {
+      case "delivered":
+        return (
+          <Button variant="outline" size="sm">
+            Buy Again
+          </Button>
+        );
+      case "shipped":
+        return (
+          <Button variant="outline" size="sm">
+            Track
+          </Button>
+        );
+      case "processing":
+        return (
+          <Button variant="outline" size="sm" className="text-destructive">
+            Cancel
+          </Button>
+        );
+      case "cancelled":
+        return (
+          <Button variant="outline" size="sm">
+            Reorder
+          </Button>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const filteredOrders = orders.filter(order => {
+    if (!order?.orderId) return false;
+    return order.orderId.toString().toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
   if (loading) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
@@ -95,97 +121,75 @@ export default function OrdersPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">My Orders</h1>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold">My Orders</h1>
+          <p className="text-muted-foreground">View and manage your order history.</p>
+        </div>
 
-      {orders.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <h2 className="text-xl font-semibold mb-2">No orders yet</h2>
-            <p className="text-muted-foreground mb-6">When you place an order, it will appear here</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {orders.map((order) => (
-            <Card key={order._id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Order #{order._id.slice(-8)}</CardTitle>
-                    <CardDescription>
-                      Placed on {format(new Date(order.createdAt), "PPP")}
-                    </CardDescription>
-                  </div>
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <Input
+            placeholder="Search by order id"
+            className="max-w-md"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Order Status</span>
+            {/* Status filter dropdown could be added here */}
+          </div>
+        </div>
+
+        {filteredOrders.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <h2 className="text-xl font-semibold mb-2">No orders found</h2>
+              <p className="text-muted-foreground mb-6">
+                {searchTerm ? "Try a different search term" : "When you place an order, it will appear here"}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="border rounded-lg overflow-hidden">
+            <div className="grid grid-cols-12 bg-muted/50 p-4 font-medium">
+              <div className="col-span-3">Order ID</div>
+              <div className="col-span-3">Date</div>
+              <div className="col-span-2">Status</div>
+              <div className="col-span-2">Total</div>
+              <div className="col-span-2">Actions</div>
+            </div>
+
+            {filteredOrders.map((order) => (
+              <div key={order._id} className="grid grid-cols-12 items-center p-4 border-t hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/orders/${order._id}`)}>
+                <div className="col-span-3 font-medium">{order.orderId}</div>
+                <div className="col-span-3 text-muted-foreground">
+                  {format(new Date(order.createdAt), "MMM d, yyyy")}
+                </div>
+                <div className="col-span-2">
                   <Badge className={getStatusColor(order.status)} variant="secondary">
                     {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                   </Badge>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {/* Order Items */}
-                  <div>
-                    <h3 className="font-semibold mb-3">Items</h3>
-                    <div className="space-y-3">
-                      {order.items.map((item, index) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">{item.product.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Quantity: {item.quantity}
-                            </p>
-                          </div>
-                          <p className="font-medium">
-                            ${(item.product.price * item.quantity).toFixed(2)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Shipping Info */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="font-semibold mb-3">Shipping Address</h3>
-                      <p>{order.shippingInfo.firstName} {order.shippingInfo.lastName}</p>
-                      <p>{order.shippingInfo.address}</p>
-                      <p>{order.shippingInfo.city}, {order.shippingInfo.state} {order.shippingInfo.zipCode}</p>
-                      <p>Phone: {order.shippingInfo.phone}</p>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-3">Order Summary</h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Subtotal</span>
-                          <span>${order.totals.subtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Shipping</span>
-                          <span>${order.totals.shipping.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Tax</span>
-                          <span>${order.totals.tax.toFixed(2)}</span>
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between font-semibold">
-                          <span>Total</span>
-                          <span>${order.totals.total.toFixed(2)}</span>
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-2">
-                          Payment Method: {order.paymentMethod === "card" ? "Credit/Debit Card" : "Cash on Delivery"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <div className="col-span-2 font-medium">
+                  ${order.totals.total.toFixed(2)}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                <div className="col-span-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/dashboard/orders/${order._id}`);
+                    }}
+                  >
+                    View Details
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
-} 
+}

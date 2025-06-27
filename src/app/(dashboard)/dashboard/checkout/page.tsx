@@ -15,6 +15,9 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { Elements } from "@stripe/react-stripe-js";
+import { stripePromise } from "@/lib/stripe";
+import { StripeCheckoutForm } from "@/components/StripeCheckoutForm";
 
 type PaymentMethod = "card" | "cash";
 
@@ -46,6 +49,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [loading, setLoading] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [clientSecret, setClientSecret] = useState<string>("");
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     firstName: "",
     lastName: "",
@@ -55,7 +59,7 @@ export default function CheckoutPage() {
     city: "",
     state: "",
     zipCode: "",
-    country: "",
+    country: "Bangladesh",
   });
 
   // Fetch cart items
@@ -87,13 +91,6 @@ export default function CheckoutPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setShippingInfo(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
     setShippingInfo(prev => ({
       ...prev,
       [name]: value
@@ -133,17 +130,39 @@ export default function CheckoutPage() {
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
-    setLoading(true);
-    
+  const createPaymentIntent = async () => {
     try {
-      // Simulate order creation
+      const response = await fetch("/api/create-payment-intent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: total,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create payment intent");
+      }
+
+      const data = await response.json();
+      setClientSecret(data.clientSecret);
+    } catch (error) {
+      console.error("Payment intent error:", error);
+      toast.error("Failed to initialize payment");
+    }
+  };
+
+  useEffect(() => {
+    if (paymentMethod === "card" && total > 0) {
+      createPaymentIntent();
+    }
+  }, [paymentMethod, total]);
+
+  const handlePaymentSuccess = async () => {
+    try {
+      // Create order after successful payment
       const orderData = {
         items: cartItems,
         shippingInfo,
@@ -156,7 +175,6 @@ export default function CheckoutPage() {
         }
       };
 
-      // Here you would typically send this to your API
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: {
@@ -169,18 +187,66 @@ export default function CheckoutPage() {
         throw new Error("Failed to create order");
       }
 
-      // Clear cart after successful order
+      // Clear cart
       await fetch("/api/cart", {
         method: "DELETE",
       });
 
-      toast.success("Order placed successfully!");
-      router.push("/dashboard/orders"); // Redirect to orders page
+      router.push("/dashboard/orders");
     } catch (error) {
-      console.error("Checkout error:", error);
-      toast.error("Failed to place order. Please try again.");
-    } finally {
-      setLoading(false);
+      console.error("Order creation error:", error);
+      toast.error("Payment successful but failed to create order");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    if (paymentMethod === "cash") {
+      setLoading(true);
+      try {
+        // Handle cash on delivery order
+        const orderData = {
+          items: cartItems,
+          shippingInfo,
+          paymentMethod,
+          totals: {
+            subtotal,
+            shipping: shippingFee,
+            tax,
+            total
+          }
+        };
+
+        const response = await fetch("/api/orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(orderData),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to create order");
+        }
+
+        // Clear cart
+        await fetch("/api/cart", {
+          method: "DELETE",
+        });
+
+        toast.success("Order placed successfully!");
+        router.push("/dashboard/orders");
+      } catch (error) {
+        console.error("Checkout error:", error);
+        toast.error("Failed to place order. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -196,7 +262,7 @@ export default function CheckoutPage() {
               <CardDescription>Enter your shipping details</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4" onSubmit={handleSubmit}>
+              <form className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First Name</Label>
@@ -312,7 +378,7 @@ export default function CheckoutPage() {
             <CardContent>
               <RadioGroup
                 value={paymentMethod}
-                onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
+                onValueChange={(value: string) => setPaymentMethod(value as PaymentMethod)}
                 className="space-y-4"
               >
                 <div className="flex items-center space-x-4 border rounded-lg p-4">
@@ -327,113 +393,14 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {paymentMethod === "card" && (
+                {paymentMethod === "card" && clientSecret && (
                   <div className="mt-4 space-y-4 border rounded-lg p-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="cardNumber">Card Number</Label>
-                      <div className="relative">
-                        <Input 
-                          id="cardNumber"
-                          placeholder="4242 4242 4242 4242"
-                          className="pl-12"
-                          maxLength={19}
-                          onChange={(e) => {
-                            // Format card number with spaces
-                            let value = e.target.value.replace(/\s/g, '');
-                            if (value.length > 0) {
-                              value = value.match(/.{1,4}/g)?.join(' ') || '';
-                            }
-                            e.target.value = value;
-                          }}
-                        />
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="h-4 w-4 text-muted-foreground"
-                          >
-                            <rect width="20" height="14" x="2" y="5" rx="2" />
-                            <line x1="2" x2="22" y1="10" y2="10" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="expiryDate">Expiry Date</Label>
-                        <Input 
-                          id="expiryDate"
-                          placeholder="MM / YY"
-                          maxLength={7}
-                          onChange={(e) => {
-                            // Format expiry date
-                            let value = e.target.value.replace(/\s/g, '').replace('/', '');
-                            if (value.length > 2) {
-                              value = value.slice(0, 2) + ' / ' + value.slice(2);
-                            }
-                            e.target.value = value;
-                          }}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cvc">CVC</Label>
-                        <div className="relative">
-                          <Input 
-                            id="cvc"
-                            placeholder="123"
-                            maxLength={3}
-                            className="pl-12"
-                          />
-                          <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="h-4 w-4 text-muted-foreground"
-                            >
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                              <circle cx="12" cy="14" r="4" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="cardName">Name on Card</Label>
-                      <Input 
-                        id="cardName"
-                        placeholder="John Doe"
+                    <Elements stripe={stripePromise} options={{ clientSecret }}>
+                      <StripeCheckoutForm 
+                        clientSecret={clientSecret}
+                        onSuccess={handlePaymentSuccess}
                       />
-                    </div>
-
-                    <div className="mt-6 flex items-center space-x-2 text-sm">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-green-500"
-                      >
-                        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
-                      </svg>
-                      <span className="text-muted-foreground">
-                        Your payment is secured by Stripe
-                      </span>
-                    </div>
+                    </Elements>
                   </div>
                 )}
 
@@ -486,14 +453,16 @@ export default function CheckoutPage() {
                 <span>${total.toFixed(2)}</span>
               </div>
 
-              <Button 
-                className="w-full" 
-                size="lg" 
-                onClick={handleSubmit}
-                disabled={loading}
-              >
-                {loading ? "Processing..." : "Place Order"}
-              </Button>
+              {paymentMethod === "cash" && (
+                <Button 
+                  className="w-full" 
+                  size="lg" 
+                  onClick={handleSubmit}
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : "Place Order"}
+                </Button>
+              )}
 
               <p className="text-sm text-muted-foreground text-center">
                 By placing your order, you agree to our{" "}
