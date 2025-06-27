@@ -27,13 +27,13 @@ export default function UserAside() {
       label: "Overview",
     },
     {
-      href: "/dashboard/products",
-      icon: Package,
-      label: "Products",
+      href: "/dashboard/cart",
+      icon: ShoppingCart,
+      label: "Cart",
     },
     {
       href: "/dashboard/orders",
-      icon: ShoppingCart,
+      icon: Package,
       label: "Orders",
     },
     {

@@ -43,6 +43,7 @@ export const collectionNameObj = {
   shopCollection: "shops",
   cartCollection: "carts",
   wishlistCollection: "wishlists",
+  orderCollection: "orders",
 } as const
 
 // Generic database connector

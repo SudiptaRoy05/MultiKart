@@ -80,7 +80,7 @@ const Navbar = () => {
             variant="ghost"
             size="icon"
             className="group relative h-10 w-10 rounded-xl transition-all duration-200 hover:bg-red-50 hover:scale-105 dark:hover:bg-red-950/20"
-            onClick={() => router.push("/cart")}
+            onClick={() => router.push("/dashboard/cart")}
           >
             <ShoppingCart className="h-5 w-5 text-red-600 transition-transform duration-200 group-hover:scale-110" />
             {!isLoading && cartCount > 0 && (
