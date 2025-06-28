@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Package, Heart, Truck, Gift, Check, Star, Tag, Loader2 } from 'lucide-react';
-import { useCurrentUser } from '@/app/hooks/useCurrentUser';
+import { Package, Heart, Truck, Gift, Check, Tag, Loader2 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 interface UserStats {
   totalOrders: number;
@@ -25,7 +25,7 @@ interface UserStatsData {
 }
 
 export default function UserOverview() {
-    const { user, loading: userLoading, error: userError } = useCurrentUser();
+    const { data: session, status } = useSession();
     const [stats, setStats] = useState<UserStats | null>(null);
     const [activity, setActivity] = useState<ActivityItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -33,41 +33,55 @@ export default function UserOverview() {
 
     useEffect(() => {
         async function fetchUserStats() {
-            if (!user?._id) return;
-
             try {
-                const res = await fetch(`/api/user/stats?userId=${user._id}`);
-                if (!res.ok) throw new Error("Failed to fetch user stats");
+                const res = await fetch('/api/user/stats');
+                
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || "Failed to fetch user stats");
+                }
 
                 const data: UserStatsData = await res.json();
                 setStats(data.stats);
                 setActivity(data.activity);
+                setError(null);
             } catch (err) {
-                console.error(err);
-                setError("Error fetching user statistics");
+                console.error('Error fetching stats:', err);
+                setError(err instanceof Error ? err.message : "Failed to fetch user statistics");
             } finally {
                 setLoading(false);
             }
         }
 
-        if (user) {
+        if (status === "authenticated") {
             fetchUserStats();
+        } else if (status === "unauthenticated") {
+            setLoading(false);
+            setError("Please log in to view your statistics");
         }
-    }, [user]);
+    }, [status]);
 
-    if (userLoading || loading) {
+    if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading user info...</span>
+                <span className="ml-2 text-sm text-muted-foreground">Loading statistics...</span>
             </div>
         );
     }
 
-    if (userError || error || !user) {
+    if (error) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <p className="text-sm text-destructive">Failed to load user info</p>
+                <p className="text-sm text-destructive">{error}</p>
+            </div>
+        );
+    }
+
+    if (!session?.user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">Please log in to view your statistics</p>
             </div>
         );
     }
@@ -78,11 +92,13 @@ export default function UserOverview() {
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex items-center gap-3 mb-2">
-                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Hi, {user.name}</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                            Hi, {session.user.name}
+                        </h1>
                         <span className="text-2xl">👋</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                        {user.email} • {user.role}
+                        {session.user.email}
                     </p>
                 </div>
 
@@ -124,7 +140,7 @@ export default function UserOverview() {
                         <h2 className="text-lg font-semibold">Recent Activity</h2>
                     </div>
                     <div className="divide-y">
-                        {activity.length > 0 ? (
+                        {activity && activity.length > 0 ? (
                             activity.map((item, index) => (
                                 <ActivityCard
                                     key={index}
@@ -148,7 +164,17 @@ export default function UserOverview() {
     );
 }
 
-// Helper functions
+function formatDate(dateString: string) {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+    }).format(date);
+}
+
 function getActivityIcon(status: string) {
     switch (status) {
         case 'delivered':
@@ -188,64 +214,50 @@ function getActivityBgColor(status: string) {
     }
 }
 
-function formatDate(dateString: string) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (days === 0) {
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        if (hours === 0) {
-            const minutes = Math.floor(diff / (1000 * 60));
-            return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
-        }
-        return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-    } else if (days === 1) {
-        return 'Yesterday';
-    } else if (days < 7) {
-        return `${days} days ago`;
-    } else {
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    }
+interface StatCardProps {
+    icon: React.ElementType;
+    value: number;
+    label: string;
+    iconColor: string;
+    bgColor: string;
 }
 
-// Reusable components
-function StatCard({ icon: Icon, value, label, iconColor, bgColor }: any) {
+function StatCard({ icon: Icon, value, label, iconColor, bgColor }: StatCardProps) {
     return (
-        <div className="rounded-xl border bg-card text-card-foreground p-4 md:p-6 shadow-sm hover:shadow-md transition">
-            <div className="mb-3">
-                <div className={`inline-flex p-2 rounded-lg ${bgColor}`}>
+        <div className="p-4 rounded-xl border bg-card">
+            <div className="flex items-center gap-4">
+                <div className={`p-2 rounded-lg ${bgColor}`}>
                     <Icon className={`w-5 h-5 ${iconColor}`} />
                 </div>
-            </div>
-            <div className="space-y-1">
-                <p className="text-2xl md:text-3xl font-bold">{value}</p>
-                <p className="text-sm text-muted-foreground">{label}</p>
+                <div>
+                    <p className="text-2xl font-semibold">{value}</p>
+                    <p className="text-sm text-muted-foreground">{label}</p>
+                </div>
             </div>
         </div>
     );
 }
 
-function ActivityCard({ icon: Icon, title, description, time, iconColor, bgColor }: any) {
+interface ActivityCardProps {
+    icon: React.ElementType;
+    title: string;
+    description: string;
+    time: string;
+    iconColor: string;
+    bgColor: string;
+}
+
+function ActivityCard({ icon: Icon, title, description, time, iconColor, bgColor }: ActivityCardProps) {
     return (
-        <div className="p-4 md:p-6 hover:bg-muted/30 transition-colors">
+        <div className="p-4 md:p-6">
             <div className="flex items-start gap-4">
-                <div className={`p-2 rounded-lg ${bgColor} flex-shrink-0`}>
-                    <Icon className={`w-4 h-4 ${iconColor}`} />
+                <div className={`p-2 rounded-lg ${bgColor}`}>
+                    <Icon className={`w-5 h-5 ${iconColor}`} />
                 </div>
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <h3 className="font-medium text-foreground mb-1">{title}</h3>
-                            <p className="text-sm text-muted-foreground">{description}</p>
-                        </div>
-                        <p className="text-xs text-muted-foreground whitespace-nowrap">{time}</p>
-                    </div>
+                <div className="flex-1">
+                    <h3 className="font-medium">{title}</h3>
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{time}</p>
                 </div>
             </div>
         </div>

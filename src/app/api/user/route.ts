@@ -1,32 +1,47 @@
 import { NextResponse } from "next/server";
 import { dbConnect, collectionNameObj } from "@/lib/dbConnect";
+import { getServerSession } from "next-auth";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const email = searchParams.get("email");
-
-  if (!email) {
-    return NextResponse.json({ message: "Email is required" }, { status: 400 });
-  }
-
   try {
-    const usersCollection = await dbConnect(collectionNameObj.userCollection);
-    const user = await usersCollection.findOne({ email });
-
-    if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    // Get the session to verify authentication
+    const session = await getServerSession();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Convert _id to string and remove sensitive data
-    const { hashedPassword, ...safeUser } = user;
-    const formattedUser = {
+    // Get email from query params
+    const { searchParams } = new URL(request.url);
+    const email = searchParams.get("email");
+
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+
+    // Verify user is requesting their own data
+    if (email !== session.user.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userCollection = await dbConnect(collectionNameObj.userCollection);
+    const user = await userCollection.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Remove sensitive information
+    const { password, ...safeUser } = user;
+
+    return NextResponse.json({
       ...safeUser,
       _id: safeUser._id.toString()
-    };
-
-    return NextResponse.json(formattedUser);
+    });
   } catch (error) {
     console.error("User fetch error:", error);
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch user data" },
+      { status: 500 }
+    );
   }
-}
+} 

@@ -17,14 +17,40 @@ export const middleware = async (req: NextRequest) => {
             (pathname.startsWith('/api/shop/') || 
              pathname.startsWith('/api/user/') ||
              pathname.startsWith('/api/cart/') ||
-             pathname.startsWith('/api/wishlist/'))) {
+             pathname.startsWith('/api/wishlist/') ||
+             pathname.startsWith('/api/orders/') ||
+             pathname.startsWith('/api/product/') ||
+             pathname.startsWith('/api/payments/') ||
+             pathname.startsWith('/api/create-payment-intent/'))) {
+            
             if (!token) {
                 return new NextResponse(
-                    JSON.stringify({ error: 'Authentication required' }),
-                    { status: 401, headers: { 'content-type': 'application/json' } }
+                    JSON.stringify({ 
+                        error: 'Authentication required',
+                        message: 'Please log in to access this resource' 
+                    }),
+                    { 
+                        status: 401, 
+                        headers: { 
+                            'content-type': 'application/json',
+                        } 
+                    }
                 )
             }
-            return NextResponse.next()
+
+            // Clone the request to modify headers
+            const requestHeaders = new Headers(req.headers)
+            // Use token.sub as the consistent user ID across the application
+            requestHeaders.set('x-user-id', token.sub as string)
+            requestHeaders.set('x-user-email', token.email as string)
+            requestHeaders.set('x-user-role', token.role as string)
+
+            // Return response with modified headers
+            return NextResponse.next({
+                request: {
+                    headers: requestHeaders,
+                }
+            })
         }
 
         // For protected pages
@@ -37,7 +63,16 @@ export const middleware = async (req: NextRequest) => {
         return NextResponse.next()
     } catch (error) {
         console.error('Middleware error:', error)
-        return NextResponse.redirect(new URL('/login', req.url))
+        return new NextResponse(
+            JSON.stringify({ 
+                error: 'Internal server error',
+                message: 'An error occurred while processing your request' 
+            }),
+            { 
+                status: 500, 
+                headers: { 'content-type': 'application/json' } 
+            }
+        )
     }
 }
 
@@ -47,6 +82,10 @@ export const middleware = async (req: NextRequest) => {
 // - /api/user/* - User-related API routes
 // - /api/cart/* - Cart-related API routes
 // - /api/wishlist/* - Wishlist-related API routes
+// - /api/orders/* - Order-related API routes
+// - /api/product/* - Product management routes
+// - /api/payments/* - Payment-related routes
+// - /api/create-payment-intent/* - Stripe payment intent routes
 export const config = {
     matcher: [
         '/dashboard/:path*',
@@ -54,5 +93,9 @@ export const config = {
         '/api/user/:path*',
         '/api/cart/:path*',
         '/api/wishlist/:path*',
+        '/api/orders/:path*',
+        '/api/product/:path*',
+        '/api/payments/:path*',
+        '/api/create-payment-intent/:path*'
     ]
 }

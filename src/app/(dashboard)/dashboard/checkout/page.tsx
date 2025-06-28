@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Elements } from "@stripe/react-stripe-js";
-import { stripePromise } from "@/lib/stripe";
+import { stripePromise } from "@/lib/stripe-client";
 import { StripeCheckoutForm } from "@/components/StripeCheckoutForm";
 
 type PaymentMethod = "card" | "cash";
@@ -395,7 +395,7 @@ export default function CheckoutPage() {
 
                 {paymentMethod === "card" && clientSecret && (
                   <div className="mt-4 space-y-4 border rounded-lg p-6">
-                    <Elements stripe={stripePromise} options={{ clientSecret }}>
+                    <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
                       <StripeCheckoutForm 
                         clientSecret={clientSecret}
                         onSuccess={handlePaymentSuccess}

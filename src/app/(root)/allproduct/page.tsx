@@ -368,28 +368,14 @@ export default function PublicAllProductsPage() {
                                         </CardContent>
 
                                         <CardFooter className="p-5 pt-0">
-                                            <div className="w-full space-y-3">
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="flex-1 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 rounded-lg dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                                                        onClick={() => handleViewDetails(product._id)}
-                                                    >
-                                                        <Eye className="h-4 w-4 mr-1" />
-                                                        Preview
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium transition-all duration-200 rounded-lg shadow-sm hover:shadow-md"
-                                                        disabled={product.quantity === 0}
-                                                    >
-                                                        <ShoppingCart className="h-4 w-4 mr-1" />
-                                                        {product.quantity > 0 ? "Add to Cart" : "Sold Out"}
-                                                    </Button>
-                                                </div>
-
-                                            </div>
+                                            <Button
+                                                className="w-full bg-red-500 hover:bg-red-600 text-white font-medium transition-all duration-200 rounded-lg shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+                                                onClick={() => handleViewDetails(product._id)}
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                                View Details
+                                                <ArrowRight className="h-4 w-4" />
+                                            </Button>
                                         </CardFooter>
                                     </Card>
                                 ))}

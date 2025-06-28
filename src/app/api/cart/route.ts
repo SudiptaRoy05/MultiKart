@@ -88,7 +88,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Not enough stock for requested quantity" }, { status: 400 });
       }
       
-      // Update quantity
+      // Update quantity in cart
       await cartCollection.updateOne(
         { _id: existingCartItem._id },
         { $set: { quantity: newQuantity } }
@@ -198,9 +198,9 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Cart item not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Item removed from cart" });
+    return NextResponse.json({ message: "Cart item deleted successfully" });
   } catch (error) {
     console.error("Cart DELETE Error:", error);
-    return NextResponse.json({ error: "Failed to remove from cart" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete cart item" }, { status: 500 });
   }
 } 

@@ -1,17 +1,17 @@
-import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-import { getServerSession } from "next-auth";
+import { stripe } from "@/lib/stripe-server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { amount } = await req.json();
 
-    // Create a PaymentIntent with the order amount and currency
+    if (!amount || amount <= 0) {
+      return NextResponse.json(
+        { error: "Invalid amount" },
+        { status: 400 }
+      );
+    }
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency: "usd",
@@ -20,13 +20,11 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({
-      clientSecret: paymentIntent.client_secret,
-    });
+    return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
     console.error("Payment intent error:", error);
     return NextResponse.json(
-      { error: "Error creating payment intent" },
+      { error: "Failed to create payment intent" },
       { status: 500 }
     );
   }

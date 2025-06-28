@@ -3,11 +3,19 @@ import { collectionNameObj, dbConnect } from "@/lib/dbConnect";
 import { ObjectId } from "mongodb";
 
 // Get single product by ID (public)
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  req: Request,
+  context: { params: { id: string } }
+) {
   try {
+    const id = context.params.id;
+    if (!id || !ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
+    }
+
     const productsCollection = await dbConnect(collectionNameObj.productCollection);
     
-    const product = await productsCollection.findOne({ _id: new ObjectId(params.id) });
+    const product = await productsCollection.findOne({ _id: new ObjectId(id) });
     
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
