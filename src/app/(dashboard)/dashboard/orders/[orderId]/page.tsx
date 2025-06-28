@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Package, Truck, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, Package, Truck, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
 
@@ -76,16 +76,25 @@ export default function OrderDetailsPage({ params }: PageProps) {
   const { orderId } = use(params);
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const response = await fetch(`/api/orders/${orderId}`);
-        if (!response.ok) throw new Error("Failed to fetch order details");
+        if (!response.ok) {
+          throw new Error(`Failed to fetch order: ${response.statusText}`);
+        }
         const data = await response.json();
+        if (data.error) {
+          throw new Error(data.error);
+        }
         setOrder(data.order);
-      } catch (error) {
-        console.error("Error fetching order:", error);
+      } catch (err: any) {
+        console.error("Error fetching order:", err);
+        setError(err.message || "Failed to fetch order details");
         toast.error("Failed to load order details");
       } finally {
         setLoading(false);
@@ -142,16 +151,26 @@ export default function OrderDetailsPage({ params }: PageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Loading order details...</p>
-        </div>
+      <div className="max-w-7xl mx-auto p-6">
+        <Button
+          variant="ghost"
+          onClick={() => router.push("/dashboard/orders")}
+          className="mb-6"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Orders
+        </Button>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin mb-4" />
+            <p className="text-muted-foreground">Loading order details...</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (!order) {
+  if (error || !order) {
     return (
       <div className="max-w-7xl mx-auto p-6">
         <Button
@@ -164,10 +183,18 @@ export default function OrderDetailsPage({ params }: PageProps) {
         </Button>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <h2 className="text-xl font-semibold mb-2">Order not found</h2>
+            <XCircle className="h-8 w-8 text-destructive mb-4" />
+            <h2 className="text-xl font-semibold mb-2">
+              {error || "Order not found"}
+            </h2>
             <p className="text-muted-foreground mb-6">
-              The order you're looking for doesn't exist or has been removed.
+              {error
+                ? "There was an error loading the order details. Please try again later."
+                : "The order you're looking for doesn't exist or has been removed."}
             </p>
+            <Button onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -198,10 +225,10 @@ export default function OrderDetailsPage({ params }: PageProps) {
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Badge className={getStatusColor(order.status)} variant="secondary">
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                  {(order.status || 'pending').charAt(0).toUpperCase() + (order.status || 'pending').slice(1)}
                 </Badge>
                 <Badge className={getPaymentStatusColor(order.paymentStatus)} variant="secondary">
-                  Payment: {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+                  Payment: {(order.paymentStatus || 'pending').charAt(0).toUpperCase() + (order.paymentStatus || 'pending').slice(1)}
                 </Badge>
               </div>
             </div>
@@ -215,7 +242,7 @@ export default function OrderDetailsPage({ params }: PageProps) {
           </CardHeader>
           <CardContent>
             <div className="relative">
-              {order.trackingInfo.history.map((event, index) => (
+              {order.trackingInfo?.history?.map((event, index) => (
                 <div key={index} className="flex items-start mb-4 last:mb-0">
                   <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
                     getStatusColor(event.status as Order["status"])
@@ -224,7 +251,7 @@ export default function OrderDetailsPage({ params }: PageProps) {
                   </div>
                   <div className="ml-4">
                     <p className="font-medium">
-                      {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                      {(event.status || '').charAt(0).toUpperCase() + (event.status || '').slice(1)}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {format(new Date(event.timestamp), "PPP p")}
@@ -233,6 +260,11 @@ export default function OrderDetailsPage({ params }: PageProps) {
                   </div>
                 </div>
               ))}
+              {(!order.trackingInfo?.history || order.trackingInfo.history.length === 0) && (
+                <div className="text-center py-4 text-muted-foreground">
+                  No tracking information available
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -245,29 +277,34 @@ export default function OrderDetailsPage({ params }: PageProps) {
                 <CardTitle>Order Items</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {order.items.map((item) => (
+                {order.items?.map((item) => (
                   <div key={item._id} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
                     <div className="relative h-20 w-20 rounded-lg border bg-muted">
-                      {item.product.imageUrl && (
+                      {item.product?.imageUrl && (
                         <Image
                           src={item.product.imageUrl}
-                          alt={item.product.name}
+                          alt={item.product.name || 'Product image'}
                           fill
                           className="object-cover rounded-lg"
                         />
                       )}
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium">{item.product.name}</h4>
+                      <h4 className="font-medium">{item.product?.name || 'Unnamed Product'}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Quantity: {item.quantity}
+                        Quantity: {item.quantity || 0}
                       </p>
                       <p className="text-sm font-medium">
-                        ${(item.product.price * item.quantity).toFixed(2)}
+                        ${((item.product?.price || 0) * (item.quantity || 0)).toFixed(2)}
                       </p>
                     </div>
                   </div>
                 ))}
+                {(!order.items || order.items.length === 0) && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    No items in this order
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -281,23 +318,29 @@ export default function OrderDetailsPage({ params }: PageProps) {
                   <div>
                     <p className="text-sm text-muted-foreground">Name</p>
                     <p className="font-medium">
-                      {order.shippingInfo.firstName} {order.shippingInfo.lastName}
+                      {order.shippingInfo?.firstName || ''} {order.shippingInfo?.lastName || ''}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium">{order.shippingInfo.email}</p>
+                    <p className="font-medium">{order.shippingInfo?.email || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{order.shippingInfo.phone}</p>
+                    <p className="font-medium">{order.shippingInfo?.phone || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Address</p>
                     <p className="font-medium">
-                      {order.shippingInfo.address}, {order.shippingInfo.city},{" "}
-                      {order.shippingInfo.state} {order.shippingInfo.zipCode},{" "}
-                      {order.shippingInfo.country}
+                      {[
+                        order.shippingInfo?.address,
+                        order.shippingInfo?.city,
+                        order.shippingInfo?.state,
+                        order.shippingInfo?.zipCode,
+                        order.shippingInfo?.country,
+                      ]
+                        .filter(Boolean)
+                        .join(', ') || 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -314,20 +357,20 @@ export default function OrderDetailsPage({ params }: PageProps) {
               <CardContent className="space-y-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>${order.totals.subtotal.toFixed(2)}</span>
+                  <span>${(order.totals?.subtotal || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping</span>
-                  <span>${order.totals.shipping.toFixed(2)}</span>
+                  <span>${(order.totals?.shipping || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Tax</span>
-                  <span>${order.totals.tax.toFixed(2)}</span>
+                  <span>${(order.totals?.tax || 0).toFixed(2)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-medium">
                   <span>Total</span>
-                  <span>${order.totals.total.toFixed(2)}</span>
+                  <span>${(order.totals?.total || 0).toFixed(2)}</span>
                 </div>
                 <div className="pt-4">
                   <p className="text-sm text-muted-foreground mb-2">Payment Method</p>
@@ -339,7 +382,7 @@ export default function OrderDetailsPage({ params }: PageProps) {
             </Card>
 
             {/* Action Buttons */}
-            {order.status !== "cancelled" && order.status !== "delivered" && (
+            {order.status && order.status !== "cancelled" && order.status !== "delivered" && (
               <div className="mt-4 space-y-2">
                 {order.status === "pending" && (
                   <Button variant="destructive" className="w-full">

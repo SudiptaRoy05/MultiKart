@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { ObjectId } from "mongodb";
 import { collectionNameObj, dbConnect } from "@/lib/dbConnect";
+import { NextRequest } from "next/server";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 export async function POST(req: Request) {
   try {
@@ -95,66 +97,111 @@ export async function POST(req: Request) {
 }
 
 // Get user's orders
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    console.log("Starting orders fetch...");
+    
     const session = await getServerSession();
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      console.log("No session or email found:", { session });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    // Get query parameters
+    const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
-    const sort = searchParams.get("sort") || "createdAt";
-    const order = searchParams.get("order") || "desc";
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get("search");
+    const status = searchParams.get("status");
 
-    const orderCollection = await dbConnect(collectionNameObj.orderCollection);
-    const userCollection = await dbConnect(collectionNameObj.userCollection);
+    console.log("Query params:", { page, limit, search, status });
 
-    // Get user ID
-    const user = await userCollection.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    try {
+      // Connect to database
+      const ordersCollection = await dbConnect(collectionNameObj.orderCollection);
+      const userCollection = await dbConnect(collectionNameObj.userCollection);
 
-    // Build query
-    const query: any = { userId: new ObjectId(user._id) };
-    if (status) {
-      query.status = status;
-    }
+      console.log("Database connected successfully");
 
-    // Get total count for pagination
-    const totalOrders = await orderCollection.countDocuments(query);
-
-    // Get user's orders with populated items
-    const orders = await orderCollection
-      .find(query)
-      .sort({ [sort]: order === "desc" ? -1 : 1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .toArray();
-
-    // Calculate pagination info
-    const totalPages = Math.ceil(totalOrders / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
-
-    return NextResponse.json({
-      orders,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalOrders,
-        hasNextPage,
-        hasPrevPage,
-        limit
+      // Get user ID
+      const user = await userCollection.findOne({ email: session.user.email });
+      if (!user) {
+        console.log("User not found:", session.user.email);
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
+
+      console.log("User found:", { userId: user._id });
+
+      // Build query
+      const query: any = {
+        userId: new ObjectId(user._id),
+      };
+
+      if (search) {
+        query.orderId = { $regex: search, $options: "i" };
+      }
+
+      if (status && status !== "all") {
+        query.status = status;
+      }
+
+      console.log("Built query:", JSON.stringify(query, null, 2));
+
+      // Calculate skip value for pagination
+      const skip = (page - 1) * limit;
+
+      // Get total count for pagination
+      const totalItems = await ordersCollection.countDocuments(query);
+      const totalPages = Math.ceil(totalItems / limit);
+
+      console.log("Pagination info:", { totalItems, totalPages, skip, limit });
+
+      // Fetch orders with pagination
+      const orders = await ordersCollection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+
+      console.log(`Found ${orders.length} orders`);
+
+      // Format orders
+      const formattedOrders = orders.map(order => ({
+        ...order,
+        _id: order._id.toString(),
+      }));
+
+      return NextResponse.json({
+        orders: formattedOrders,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems,
+        },
+      });
+    } catch (dbError: any) {
+      console.error("Database operation error:", {
+        message: dbError.message,
+        code: dbError.code,
+        stack: dbError.stack
+      });
+      throw new Error(`Database operation failed: ${dbError.message}`);
+    }
+  } catch (error: any) {
+    console.error("Error in orders API:", {
+      message: error.message,
+      stack: error.stack
     });
-  } catch (error) {
-    console.error("Get orders error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch orders" },
+      { 
+        error: "Failed to fetch orders", 
+        details: error.message,
+        code: error.code 
+      },
       { status: 500 }
     );
   }

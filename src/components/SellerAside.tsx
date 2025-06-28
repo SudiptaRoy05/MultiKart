@@ -6,10 +6,8 @@ import {
   ShoppingCart,
   CreditCard,
   Store,
-  User,
   Building2,
   Text,
-  Star,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -20,7 +18,7 @@ import { useShop } from "@/app/hooks/shopContext";
 export default function SellerAside() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { selectedShop } = useShop();
+  const { selectedShop, isLoading } = useShop();
 
   const linkClass = (path: string) =>
     `flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
@@ -32,7 +30,7 @@ export default function SellerAside() {
   return (
     <aside className="w-64 border-r border-gray-200 dark:border-neutral-800 px-4 py-6 flex flex-col justify-between min-h-screen bg-white dark:bg-black">
       <div>
-        {/* Title */}
+        {/* Title and Shop Selector */}
         <div className="mb-6">
           <div className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
             Seller Dashboard
@@ -40,41 +38,37 @@ export default function SellerAside() {
           <ShopSelector />
         </div>
 
-        {/* Navigation */}
-        <nav className="space-y-2">
-          <Link href="/dashboard" className={linkClass("/dashboard")}>
-            <LayoutDashboard className="w-5 h-5" />
-            Overview
-          </Link>
-          <Link href="/dashboard/product" className={linkClass("/dashboard/product")}>
-            <Package className="w-5 h-5" />
-            Products
-          </Link>
-          <Link href="/dashboard/featured" className={linkClass("/dashboard/featured")}>
-            <Star className="w-5 h-5" />
-            Featured Products
-          </Link>
-          <Link href="/dashboard/allproducts" className={linkClass("/dashboard/allproducts")}>
-            <Package className="w-5 h-5" />
-            All Products
-          </Link>
-          <Link href="/dashboard/order" className={linkClass("/dashboard/order")}>
-            <ShoppingCart className="w-5 h-5" />
-            Orders
-          </Link>
-          <Link href="/payments" className={linkClass("/payments")}>
-            <CreditCard className="w-5 h-5" />
-            Payments
-          </Link>
-          <Link href="/dashboard/createshop" className={linkClass("/dashboard/createshop")}>
-            <Store className="w-5 h-5" />
-            Create Shop
-          </Link>
-          <Link href="/dashboard/profile" className={linkClass("/dashboard/profile")}>
-            <User className="w-5 h-5" />
-            Profile
-          </Link>
-        </nav>
+        {/* Navigation - Only show if a shop is selected and not loading */}
+        {selectedShop && !isLoading && (
+          <nav className="space-y-2">
+            <Link href="/dashboard" className={linkClass("/dashboard")}>
+              <LayoutDashboard className="w-5 h-5" />
+              Overview
+            </Link>
+            <Link href="/dashboard/product" className={linkClass("/dashboard/product")}>
+              <Package className="w-5 h-5" />
+              Products
+            </Link>
+            <Link href="/dashboard/sellerOrder" className={linkClass("/dashboard/sellerOrder")}>
+              <ShoppingCart className="w-5 h-5" />
+              Orders
+            </Link>
+            <Link href="/dashboard/payments" className={linkClass("/dashboard/payments")}>
+              <CreditCard className="w-5 h-5" />
+              Payments
+            </Link>
+          </nav>
+        )}
+
+        {/* Create Shop Link - Only show if no shop is selected and not loading */}
+        {!selectedShop && !isLoading && (
+          <div className="mt-4">
+            <Link href="/dashboard/createshop" className={linkClass("/dashboard/createshop")}>
+              <Store className="w-5 h-5" />
+              Create Shop
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Shop Card */}

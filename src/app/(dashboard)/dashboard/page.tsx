@@ -1,10 +1,10 @@
 "use client";
 
 import SellerOverview from "@/components/SellerOverview";
+import UserOverview from "@/components/UserOverview";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import UserOverview from "@/components/UserOverview";
 import { useCurrentUser } from "@/app/hooks/useCurrentUser";
 
 export default function Dashboard() {

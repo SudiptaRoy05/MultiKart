@@ -24,6 +24,8 @@ interface ShopContextType {
     refreshShops: () => Promise<void>;
 }
 
+const SELECTED_SHOP_KEY = 'selectedShopId';
+
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider = ({ children }: { children: ReactNode }) => {
@@ -32,6 +34,16 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [shops, setShops] = useState<Shop[]>([]);
+
+    // Function to handle shop selection with localStorage persistence
+    const handleShopSelection = (shop: Shop | null) => {
+        setSelectedShop(shop);
+        if (shop) {
+            localStorage.setItem(SELECTED_SHOP_KEY, shop._id);
+        } else {
+            localStorage.removeItem(SELECTED_SHOP_KEY);
+        }
+    };
 
     const fetchShops = async () => {
         if (!session?.user?.email) {
@@ -47,9 +59,27 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
             const data = await response.json();
             setShops(data);
             
+            // Get the previously selected shop ID from localStorage
+            const savedShopId = localStorage.getItem(SELECTED_SHOP_KEY);
+            
+            // If there's a saved shop ID and it exists in the fetched shops, select it
+            if (savedShopId) {
+                const savedShop = data.find((shop: Shop) => shop._id === savedShopId);
+                if (savedShop) {
+                    handleShopSelection(savedShop);
+                    return;
+                }
+            }
+            
             // If there's only one shop, select it automatically
-            if (data.length === 1 && !selectedShop) {
-                setSelectedShop(data[0]);
+            if (data.length === 1) {
+                handleShopSelection(data[0]);
+                return;
+            }
+            
+            // If there are shops but none selected, select the first one
+            if (data.length > 0 && !selectedShop) {
+                handleShopSelection(data[0]);
             }
         } catch (err) {
             console.error('Error fetching shops:', err);
@@ -66,7 +96,7 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
     return (
         <ShopContext.Provider value={{ 
             selectedShop, 
-            setSelectedShop,
+            setSelectedShop: handleShopSelection,
             isLoading,
             error,
             shops,
