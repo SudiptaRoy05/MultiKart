@@ -17,7 +17,7 @@ import { Upload, Store, Sparkles, ImageIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useCurrentUser } from "@/app/hooks/useCurrentUser"
-
+import { useTheme } from "next-themes"
 
 type ShopCategory = "Electronics" | "Fashion" | "Home" | "Books" | "Sports" | "Beauty"
 
@@ -37,6 +37,7 @@ export default function CreateShopForm() {
     const [selectedImage, setSelectedImage] = useState<File | null>(null)
     const [uploading, setUploading] = useState<boolean>(false)
     const router = useRouter()
+    const { theme } = useTheme()
 
     const userData = useCurrentUser()
     const userName = userData?.user?.name
@@ -144,7 +145,7 @@ export default function CreateShopForm() {
     const isSubmitDisabled = !category || !imageUrl || uploading
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-red-50 via-rose-50 to-pink-100 py-12 px-4">
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-background dark:from-background/80 dark:via-background/50 dark:to-background/80 py-12 px-4">
             <div className="max-w-2xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-8">
@@ -154,18 +155,18 @@ export default function CreateShopForm() {
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent mb-2">
                         Create Your Shop
                     </h1>
-                    <p className="text-gray-600 text-lg">
+                    <p className="text-muted-foreground text-lg">
                         Bring your business vision to life with just a few clicks
                     </p>
                 </div>
 
                 <form
                     onSubmit={shopInfo}
-                    className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8 space-y-8"
+                    className="bg-card/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-border p-8 space-y-8"
                 >
                     {/* Shop Name */}
                     <div className="space-y-2">
-                        <Label htmlFor="shopName" className="text-gray-700 font-semibold flex items-center gap-2">
+                        <Label htmlFor="shopName" className="text-foreground font-semibold flex items-center gap-2">
                             <Sparkles className="w-4 h-4 text-red-500" />
                             Shop Name
                         </Label>
@@ -176,13 +177,13 @@ export default function CreateShopForm() {
                             placeholder="What's your shop called?"
                             required
                             disabled={uploading}
-                            className="h-12 border-2 border-gray-200 focus:border-red-400 focus:ring-red-400/20 rounded-xl transition-all duration-200 text-lg"
+                            className="h-12 border-2 border-input focus:border-red-400 focus:ring-red-400/20 rounded-xl transition-all duration-200 text-lg bg-background"
                         />
                     </div>
 
                     {/* Description */}
                     <div className="space-y-2">
-                        <Label htmlFor="description" className="text-gray-700 font-semibold">
+                        <Label htmlFor="description" className="text-foreground font-semibold">
                             Description
                         </Label>
                         <Textarea
@@ -191,21 +192,22 @@ export default function CreateShopForm() {
                             placeholder="Tell customers what makes your shop special..."
                             rows={4}
                             disabled={uploading}
-                            className="border-2 border-gray-200 focus:border-red-400 focus:ring-red-400/20 rounded-xl resize-none transition-all duration-200"
+                            className="border-2 border-input focus:border-red-400 focus:ring-red-400/20 rounded-xl resize-none transition-all duration-200 bg-background"
                         />
                     </div>
 
                     {/* Image Upload */}
                     <div className="space-y-2">
-                        <Label htmlFor="image" className="text-gray-700 font-semibold flex items-center gap-2">
+                        <Label htmlFor="image" className="text-foreground font-semibold flex items-center gap-2">
                             <ImageIcon className="w-4 h-4 text-red-500" />
                             Shop Image
                         </Label>
                         <div
-                            className={`relative border-2 border-dashed rounded-xl transition-all duration-200 ${dragActive
-                                ? 'border-red-400 bg-red-50'
-                                : 'border-gray-300 hover:border-red-300'
-                                }`}
+                            className={`relative border-2 border-dashed rounded-xl transition-all duration-200 ${
+                                dragActive
+                                    ? 'border-red-400 bg-red-500/10'
+                                    : 'border-input hover:border-red-300'
+                            }`}
                             onDragEnter={handleDrag}
                             onDragLeave={handleDrag}
                             onDragOver={handleDrag}
@@ -222,22 +224,25 @@ export default function CreateShopForm() {
                                 onChange={handleImageChange}
                             />
                             <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors ${dragActive ? 'bg-red-100' : 'bg-gray-100'
-                                    }`}>
-                                    <Upload className={`w-8 h-8 ${dragActive ? 'text-red-500' : 'text-gray-400'}`} />
+                                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors ${
+                                    dragActive ? 'bg-red-500/10' : 'bg-muted'
+                                }`}>
+                                    <Upload className={`w-8 h-8 ${
+                                        dragActive ? 'text-red-500' : 'text-muted-foreground'
+                                    }`} />
                                 </div>
 
                                 {selectedImage ? (
                                     <div className="text-center">
-                                        <p className="text-green-600 font-medium">{selectedImage.name}</p>
-                                        <p className="text-sm text-gray-500">Click to change image</p>
+                                        <p className="text-green-600 dark:text-green-400 font-medium">{selectedImage.name}</p>
+                                        <p className="text-sm text-muted-foreground">Click to change image</p>
                                     </div>
                                 ) : (
                                     <div className="text-center">
-                                        <p className="text-gray-600 font-medium mb-1">
-                                            Drop your image here, or <span className="text-red-600">click to browse</span>
+                                        <p className="text-foreground font-medium mb-1">
+                                            Drop your image here, or <span className="text-red-600 dark:text-red-400">click to browse</span>
                                         </p>
-                                        <p className="text-sm text-gray-400">Supports JPG, PNG, GIF up to 10MB</p>
+                                        <p className="text-sm text-muted-foreground">Supports JPG, PNG, GIF up to 10MB</p>
                                     </div>
                                 )}
 
@@ -255,23 +260,20 @@ export default function CreateShopForm() {
 
                     {/* Category */}
                     <div className="space-y-2">
-                        <Label htmlFor="category" className="text-gray-700 font-semibold">
+                        <Label className="text-foreground font-semibold">
                             Category
                         </Label>
-                        <Select value={category} onValueChange={setCategory} disabled={uploading}>
-                            <SelectTrigger
-                                id="category"
-                                className="h-12 border-2 border-gray-200 focus:border-red-400 focus:ring-red-400/20 rounded-xl transition-all duration-200"
-                            >
-                                <SelectValue placeholder="Choose your shop category" />
+                        <Select value={category} onValueChange={setCategory}>
+                            <SelectTrigger className="h-12 border-2 border-input focus:border-red-400 focus:ring-red-400/20 rounded-xl transition-all duration-200 bg-background">
+                                <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                                <SelectItem value="Electronics" className="rounded-lg">📱 Electronics</SelectItem>
-                                <SelectItem value="Fashion" className="rounded-lg">👗 Fashion</SelectItem>
-                                <SelectItem value="Home" className="rounded-lg">🏠 Home & Garden</SelectItem>
-                                <SelectItem value="Books" className="rounded-lg">📚 Books</SelectItem>
-                                <SelectItem value="Sports" className="rounded-lg">⚽ Sports</SelectItem>
-                                <SelectItem value="Beauty" className="rounded-lg">💄 Beauty</SelectItem>
+                            <SelectContent>
+                                <SelectItem value="Electronics">Electronics</SelectItem>
+                                <SelectItem value="Fashion">Fashion</SelectItem>
+                                <SelectItem value="Home">Home</SelectItem>
+                                <SelectItem value="Books">Books</SelectItem>
+                                <SelectItem value="Sports">Sports</SelectItem>
+                                <SelectItem value="Beauty">Beauty</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -280,20 +282,21 @@ export default function CreateShopForm() {
                     <Button
                         type="submit"
                         disabled={isSubmitDisabled}
-                        className={`w-full h-14 text-lg font-semibold text-white rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200
-                        ${isSubmitDisabled
-                                ? "bg-gray-300 cursor-not-allowed"
-                                : "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
-                            }`}
+                        className={`w-full h-12 text-lg font-semibold rounded-xl transition-all duration-200 ${
+                            isSubmitDisabled
+                                ? 'bg-muted text-muted-foreground'
+                                : 'bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-500 hover:to-rose-500'
+                        }`}
                     >
-                        <Store className="w-5 h-5 mr-2" />
-                        {uploading ? "Uploading Image..." : "Create My Shop"}
+                        {uploading ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <span>Uploading...</span>
+                            </div>
+                        ) : (
+                            'Create Shop'
+                        )}
                     </Button>
-
-                    {/* Footer Text */}
-                    <p className="text-center text-sm text-gray-500 pt-4">
-                        By creating a shop, you agree to our Terms of Service and Privacy Policy
-                    </p>
                 </form>
             </div>
         </div>
